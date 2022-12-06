@@ -2,19 +2,18 @@
 
 #include "BinningStructure.h"
 // Method to convert bin structure
-map<string, vector<double>> BinningStructure::convert_min_max_n( map<string, double> min_bin_vals, map<string, double> max_bin_vals, map<string, int> num_bins ){
+map<string, vector<double>> BinningStructure::convert_min_max_n(vector<string> bin_names, map<string, double> min_bin_vals, map<string, double> max_bin_vals, map<string, int> num_bins){
     map<string, std::vector<double>> bins;
-
-    for (auto &pair : num_bins) {
-        string key = pair.first;
-        int num_bins = pair.second;
+    
+    for (string key : bin_names) {
+        int numbins = num_bins[key];
 
         double min = min_bin_vals[key];
         double max = max_bin_vals[key];
-        double bin_width = (max - min) / num_bins;
+        double bin_width = (max - min) / numbins;
 
         std::vector<double> bin_edges;
-        for (int i = 0; i <= num_bins; i++) {
+        for (int i = 0; i <= numbins; i++) {
             bin_edges.push_back(min + i * bin_width);
         }
         bins[key] = bin_edges;
@@ -25,7 +24,9 @@ map<string, vector<double>> BinningStructure::convert_min_max_n( map<string, dou
 // Method to process a TTree
 void BinningStructure::process_ttree(TTree* tree) {
     // Get branches from tree
+    int hel;
     float Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
+    //tree->SetBranchAddress("hel", &hel);
     tree->SetBranchAddress("Mgg", &Mgg);
     tree->SetBranchAddress("Mh", &Mh);
     tree->SetBranchAddress("phi_h", &phi_h);
@@ -41,9 +42,9 @@ void BinningStructure::process_ttree(TTree* tree) {
       vector<int> index = get_index(tree);
       // If index is valid, store data in bin
       if (index.size() == bin_names.size()) {
-        cout << i << " " << index.at(0) << " " << index.at(1) << " " << index.at(2) << " " << Mgg << endl;
     BinData bin_data = bin_data_map[index];
     // Append data to bin
+    //bin_data.hel.push_back(hel);
     bin_data.Mgg.push_back(Mgg);
     bin_data.Mh.push_back(Mh);
     bin_data.phi_h.push_back(phi_h);
@@ -56,7 +57,28 @@ void BinningStructure::process_ttree(TTree* tree) {
     bin_data_map[index] = bin_data;
       }
     }
+    // Set all bin names
+    SetBinNames(bins,bin_data_map);
+    
   }
+
+//Function set bin names of filled substructures
+void BinningStructure::SetBinNames(map<string, vector<double>> bins, map<vector<int>, BinData> &bin_data_map) {
+    //Loop over all elements of bin_data_map
+    for (map<vector<int>, BinData>::iterator it = bin_data_map.begin(); it != bin_data_map.end(); ++it) {
+        TString binName="";
+        //Loop over all elements of vector<int> in bin_data_map
+        for (int i = 0; i < it->first.size(); i++) {
+            //Loop over all elements of bins
+            int idx = it->first.at(i);
+            string key = bin_names.at(i);
+            binName += Form("%s_%f_%f",key.c_str(),bins[key].at(idx),bins[key].at(idx+1));
+            if(i!=it->first.size()-1)
+                binName+="_";
+        }
+        it->second.binName=binName;
+    }
+}
 
 // Method to get index of bin for a given event
 vector<int> BinningStructure::get_index(TTree* tree) {

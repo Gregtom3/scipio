@@ -2,6 +2,9 @@ using namespace std;
 
 // Struct to store data for each bin
 struct BinData {
+  TString binName;
+  // TTree information
+  vector<int>    hel;
   vector<double> Mgg;
   vector<double> Mh;
   vector<double> phi_h;  
@@ -10,6 +13,13 @@ struct BinData {
   vector<double> th;
   vector<double> prob_g1;
   vector<double> prob_g2;
+    
+  // Fitting information
+  vector<double> sweight_sig;
+  vector<double> sweight_bg;
+  std::map<std::string, double> parMap_diphoton;
+  std::map<std::string, double> parMap_7mod;
+    
 };
 
 class BinningStructure {
@@ -25,7 +35,8 @@ public:
   // Constructor
   BinningStructure(vector<string> bin_names, map<string, double> min_bin_vals, map<string, double> max_bin_vals, map<string, int> num_bins) {
     this->bin_names = bin_names;
-    this->bins = convert_min_max_n(min_bin_vals, max_bin_vals,num_bins);
+    this->bins = convert_min_max_n(bin_names ,min_bin_vals, max_bin_vals,num_bins);
+    
   }
     
   // Constructor
@@ -35,10 +46,13 @@ public:
   }
     
     // Method to convert bin structure
-    map<string, vector<double>> convert_min_max_n(map<string,double>, map<string,double>, map<string,int>);
+    map<string, vector<double>> convert_min_max_n(vector<string>, map<string,double>, map<string,double>, map<string,int>);
     
     // Method to process a TTree
     void process_ttree(TTree* tree);
+    
+    // Method to set the bin names
+    void SetBinNames(map<string, vector<double>>, map<vector<int>, BinData>&);
     
     // Method to get index of bin for a given event
     vector<int> get_index(TTree* tree);
