@@ -125,3 +125,49 @@ vector<BinData> BinningStructure::get_all_bins_data() {
     }
     return bins_data;
 }
+
+// Method to write all bin information to a TTree
+void BinningStructure::write_bin_data_map(string outfile){
+    
+    vector<BinData> bdv = get_all_bins_data();
+    TFile *f = new TFile(outfile.c_str(), "RECREATE");
+      for (auto bin_data : bdv) {
+        TTree *t = new TTree(bin_data.binName, bin_data.binName);
+        int _hel;
+        float _Mgg;
+        float _Mh;
+        float _phi_h;
+        float _phi_R0;
+        float _phi_R1;
+        float _th;
+        float _prob_g1;
+        float _prob_g2;
+          
+        //t->Branch("hel", &_hel);
+        t->Branch("Mgg", &_Mgg);
+        t->Branch("Mh", &_Mh);
+        t->Branch("phi_h", &_phi_h);
+        t->Branch("phi_R0", &_phi_R0);
+        t->Branch("phi_R1", &_phi_R1);
+        t->Branch("th", &_th);
+        t->Branch("prob_g1", &_prob_g1);
+        t->Branch("prob_g2", &_prob_g2);
+        for (int i = 0; i < (int)bin_data.Mgg.size(); ++i) {
+         // _hel = bin_data.hel[i];
+          _Mgg = bin_data.Mgg[i];
+          _Mh = bin_data.Mh[i];
+          _phi_h = bin_data.phi_h[i];
+          _phi_R0 = bin_data.phi_R0[i];
+          _phi_R1 = bin_data.phi_R1[i];
+          _th = bin_data.th[i];
+          _prob_g1 = bin_data.prob_g1[i];
+          _prob_g2 = bin_data.prob_g2[i];
+          t->Fill();
+        }
+        t->Print();
+        t->Write();
+        delete t;
+      }
+      f->Close();
+      delete f;
+}

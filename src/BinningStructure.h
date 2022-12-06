@@ -65,4 +65,6 @@ public:
     
     // Method to iterate over all bins and get corresponding arrays
     vector<BinData> get_all_bins_data();
+    
+    void write_bin_data_map(string outfile);
 };
