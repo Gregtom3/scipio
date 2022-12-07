@@ -29,7 +29,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   intree->SetBranchAddress("theta",theta);
   intree->SetBranchAddress("eta",eta);
   intree->SetBranchAddress("phi",phi);
-  intree->SetBranchAddress("catboost_weight",&catboost_weight);
+  intree->SetBranchAddress("catboost_weight",catboost_weight);
   
   // Create a TFile and TTree
   TFile* outfile = new TFile(output_file,"RECREATE");
@@ -64,11 +64,9 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   // Initial particles
   TLorentzVector init_electron(0,0,sqrt(beamE*beamE-0.000511*0.000511),beamE);
   TLorentzVector init_target(0,0,0,0.938272);
-  
   //loop over the tree entries 
   for (Int_t i=0; i<intree->GetEntries(); i++){
     intree->GetEntry(i);
-    
     // Find electron
     TLorentzVector electron;
     for (Int_t j=0; j<nPart; j++){
@@ -86,39 +84,42 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
       TLorentzVector photon1;
       TLorentzVector photon2;
       if (pid[j]==22){ //if this particle is a photon
+	
 	//fill the 4-momentum of the second photon
 	photon1.SetPxPyPzE(px[j],py[j],pz[j],E[j]);
 	prob_g1=catboost_weight[j]; // catboost weight
 	// loop over all particles again
 	for (Int_t k=j+1; k<nPart;k++){
-	  if(pid[k]!=22)continue; // if this particle is not a photon, continue
-	  photon2.SetPxPyPzE(px[k],py[k],pz[k],E[k]);
-	  prob_g2=catboost_weight[k]; // catboost weight
-	  TLorentzVector diphoton = photon1 + photon2;
-	  // loop over all particles again
-	  for (Int_t m=0;m<nPart;m++){
-	    if(pid[m]!=211)continue; //if this particle is not a pi+, continue
-	    //fill the 4-momentum of the pion
-	    TLorentzVector pion(px[m],py[m],pz[m],E[m]);	    
-	    // form dihadron
-	    TLorentzVector dihadron = pion + diphoton;
-
-	    // fill results
-	    Mgg = diphoton.M();
-	    Mh = dihadron.M();
-	    phi_h = kin.phi_h(q,electron,diphoton,pion);
-	    phi_R0 = kin.phi_R(q,electron,diphoton,pion,0);
-	    phi_R1 = kin.phi_R(q,electron,diphoton,pion,1);
-	    th     = kin.com_th(diphoton,pion);
-	    xFpiplus = kin.xF(q,pion,init_target,W);
-	    xFpi0 = kin.xF(q,diphoton,init_target,W);
-	    xF     = kin.xF(q,dihadron,init_target,W);
-	    zpiplus = kin.z(init_target,pion,q);
-	    zpi0 = kin.z(init_target,diphoton,q);
-	    z = zpiplus+zpi0;
-	    
-	    // fill tree
-	    outtree->Fill();
+	  if(pid[k]==22){ // if this particle is a photon
+	    photon2.SetPxPyPzE(px[k],py[k],pz[k],E[k]);
+	    prob_g2=catboost_weight[k]; // catboost weight
+	    TLorentzVector diphoton = photon1 + photon2;
+	    // loop over all particles again
+	    for (Int_t m=0;m<nPart;m++){
+	      //if(pid[m]!=211)continue; //if this particle is not a pi+, continue
+	      //fill the 4-momentum of the pion
+	      TLorentzVector pion(px[m],py[m],pz[m],E[m]);	    
+	      // form dihadron
+	      TLorentzVector dihadron = pion + diphoton;
+	      
+	      // fill results
+	      Mgg = diphoton.M();
+	      Mh = dihadron.M();
+	      phi_h = kin.phi_h(q,electron,diphoton,pion);
+	      phi_R0 = kin.phi_R(q,electron,diphoton,pion,0);
+	      phi_R1 = kin.phi_R(q,electron,diphoton,pion,1);
+	      th     = kin.com_th(diphoton,pion);
+	      xFpiplus = kin.xF(q,pion,init_target,W);
+	      xFpi0 = kin.xF(q,diphoton,init_target,W);
+	      xF     = kin.xF(q,dihadron,init_target,W);
+	      zpiplus = kin.z(init_target,pion,q);
+	      zpi0 = kin.z(init_target,diphoton,q);
+	      z = zpiplus+zpi0;
+	      
+	      // fill tree
+	      outtree->Fill();
+	      break;
+	    }
 	  }
 	}
       }
