@@ -7,15 +7,16 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 
   // Input tfile and tree
   TFile *infile = new TFile(input_file);
-  TTree *intree = (TTree*)infile->Get("RawEvents");
+  TTree *intree = (TTree*)infile->Get("PostProcessedEvents");
   
   //declare all necessary variables
   float x, Q2, W;
+  int hel;
   int nPart=100;
-  float px[nPart], py[nPart], pz[nPart], E[nPart], theta[nPart], eta[nPart], phi[nPart];
-  vector<float> * catboost_weight = 0;
+  float px[nPart], py[nPart], pz[nPart], E[nPart], theta[nPart], eta[nPart], phi[nPart], catboost_weight[nPart];
   int pid[nPart];
   //link the TBranches to the variables
+  intree->SetBranchAddress("hel",&hel);
   intree->SetBranchAddress("x",&x);
   intree->SetBranchAddress("Q2",&Q2);
   intree->SetBranchAddress("W",&W);
@@ -38,6 +39,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   Float_t Mgg, Mh, phi_h, phi_R0, phi_R1, th, zpiplus, zpi0, xFpiplus, xFpi0, prob_g1, prob_g2, z, xF;
 
   // Create branches
+  outtree->Branch("hel", &hel, "hel/I");
   outtree->Branch("x", &x, "x/F");
   outtree->Branch("Q2", &Q2, "Q2/F");
   outtree->Branch("W", &W, "W/F");
@@ -86,12 +88,12 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
       if (pid[j]==22){ //if this particle is a photon
 	//fill the 4-momentum of the second photon
 	photon1.SetPxPyPzE(px[j],py[j],pz[j],E[j]);
-	prob_g1=catboost_weight->at(j); // catboost weight
+	prob_g1=catboost_weight[j]; // catboost weight
 	// loop over all particles again
 	for (Int_t k=j+1; k<nPart;k++){
 	  if(pid[k]!=22)continue; // if this particle is not a photon, continue
 	  photon2.SetPxPyPzE(px[k],py[k],pz[k],E[k]);
-	  prob_g2=catboost_weight->at(k); // catboost weight
+	  prob_g2=catboost_weight[k]; // catboost weight
 	  TLorentzVector diphoton = photon1 + photon2;
 	  // loop over all particles again
 	  for (Int_t m=0;m<nPart;m++){
