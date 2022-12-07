@@ -96,7 +96,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 	    TLorentzVector diphoton = photon1 + photon2;
 	    // loop over all particles again
 	    for (Int_t m=0;m<nPart;m++){
-	      //if(pid[m]!=211)continue; //if this particle is not a pi+, continue
+	      if(pid[m]!=211)continue; //if this particle is not a pi+, continue
 	      //fill the 4-momentum of the pion
 	      TLorentzVector pion(px[m],py[m],pz[m],E[m]);	    
 	      // form dihadron
@@ -118,7 +118,6 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 	      
 	      // fill tree
 	      outtree->Fill();
-	      break;
 	    }
 	  }
 	}
