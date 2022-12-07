@@ -14,9 +14,11 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   int hel;
   int nPart=100;
   float px[nPart], py[nPart], pz[nPart], E[nPart], theta[nPart], eta[nPart], phi[nPart], catboost_weight[nPart];
-  int pid[nPart];
+  int pid[nPart] ,parentID[nPart],parentPID[nPart];
   //link the TBranches to the variables
   intree->SetBranchAddress("hel",&hel);
+  intree->SetBranchAddress("MCmatch_parent_id", &parentID);
+  intree->SetBranchAddress("MCmatch_parent_pid", &parentPID);
   intree->SetBranchAddress("x",&x);
   intree->SetBranchAddress("Q2",&Q2);
   intree->SetBranchAddress("W",&W);
@@ -37,9 +39,12 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 
   // Declare branch variables
   Float_t Mgg, Mh, phi_h, phi_R0, phi_R1, th, zpiplus, zpi0, xFpiplus, xFpi0, prob_g1, prob_g2, z, xF;
-
+  int truePi0=-1;
+  int halftruePi0=-1;
   // Create branches
   outtree->Branch("hel", &hel, "hel/I");
+  outtree->Branch("truePi0", &truePi0, "truePi0/I");
+  outtree->Branch("halftruePi0", &halftruePi0, "halftruePi0/I");
   outtree->Branch("x", &x, "x/F");
   outtree->Branch("Q2", &Q2, "Q2/F");
   outtree->Branch("W", &W, "W/F");
@@ -115,7 +120,8 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 	      zpiplus = kin.z(init_target,pion,q);
 	      zpi0 = kin.z(init_target,diphoton,q);
 	      z = zpiplus+zpi0;
-	      
+	      truePi0=((parentID[j]==parentID[k] && parentPID[j]==111 && parentPID[k]==111))?1:0;
+          halftruePi0=((parentID[j]!=parentID[k] && parentPID[j]==111 ^ parentPID[k]==111))?1:0; // '^' --> XOR
 	      // fill tree
 	      outtree->Fill();
 	    }
