@@ -9,7 +9,7 @@ void RooFitProgram(){
   RooRealVar rrv_threshold("threshold","threshold",threshold);
   
   // TFile containing many TTrees
-  TFile *file = new TFile("out.root");
+  TFile *file = new TFile("out.root","UPDATE");
   TIter iter(file->GetListOfKeys());
   TKey *key;
 
@@ -33,7 +33,7 @@ void RooFitProgram(){
       RooDataSet data("data","data",RooArgSet(Mgg));
       //Create RooDataSet and fill it with events with hel, phi_h, phi_R, prob_g1, prob_g2, and both sweights
       RooDataSet data2("data2","data2",RooArgSet(hel,phi_h,phi_R));
-      tree->Print();
+
       for(int i=0;i<tree->GetEntries();i++){
 	tree->GetEntry(i);
 	Mgg = tree->GetLeaf("Mgg")->GetValue();
@@ -48,8 +48,6 @@ void RooFitProgram(){
 	  data2.add(RooArgSet(hel,phi_h,phi_R));
 	}
 
-	if(i==1000)
-	  break;
       }
       //Create RooGaussian for signal
       RooRealVar mean("mean","mean",0.133,0.128,0.14);
@@ -85,7 +83,7 @@ void RooFitProgram(){
 	sWeightBackgroundArr[i] = sData.GetSWeight(i,"bgFrac");
       }
 
-      TTree *tree_new = (TTree*)tree->CloneTree(0);
+      TTree *tree_new = tree->CloneTree(0);
       tree_new->Branch("sWeightSignal",&sWeightSignal,"sWeightSignal/D");
       tree_new->Branch("sWeightBackground",&sWeightBackground,"sWeightBackground/D");
       int k = 0;
@@ -127,29 +125,15 @@ void RooFitProgram(){
       fitresult2->SetName(Form("%s_7mod_fitresult",tree->GetName()));
       tree_new->SetName(Form("%s_sweight",tree->GetName()));  
 
-      if(file->Get(fitresult->GetName())){
-	file->Delete(fitresult->GetName());
-      }
+      fitresult->Write(fitresult->GetName(),TObject::kOverwrite);
+      fitresult2->Write(fitresult2->GetName(),TObject::kOverwrite);
+      tree_new->Write(tree_new->GetName(),TObject::kOverwrite);
 
-      if(file->Get(fitresult2->GetName())){
-	file->Delete(fitresult2->GetName());
-      }
-      if(file->Get(tree_new->GetName())){
-	file->Delete(tree_new->GetName());
-      }
-
-      fitresult->Write();
-      fitresult2->Write();
-      tree_new->Write();
-      
     }
     
   }
   
-  if(file->Get("threshold"))
-    file->Delete("threshold");
-  
-  threshold->Write();
+  rrv_threshold.Write("threshold",TObject::kOverwrite);
   file->Close();
   return;
 
