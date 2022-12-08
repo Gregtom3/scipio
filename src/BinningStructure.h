@@ -3,7 +3,9 @@ using namespace std;
 // Struct to store data for each bin
 struct BinData {
   TString binName;
+  TTree *bintree = 0;
   // TTree information
+    
   vector<int>    hel;
   vector<double> Mgg;
   vector<double> Mh;
@@ -49,7 +51,7 @@ public:
     map<string, vector<double>> convert_min_max_n(vector<string>, map<string,double>, map<string,double>, map<string,int>);
     
     // Method to process a TTree
-    void process_ttree(TTree* tree);
+    void process_ttree(TChain *, const char *);
     
     // Method to set the bin names
     void SetBinNames(map<string, vector<double>>, map<vector<int>, BinData>&);
@@ -65,6 +67,4 @@ public:
     
     // Method to iterate over all bins and get corresponding arrays
     vector<BinData> get_all_bins_data();
-    
-    void write_bin_data_map(string outfile);
 };

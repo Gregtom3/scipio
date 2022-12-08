@@ -21,12 +21,12 @@ map<string, vector<double>> BinningStructure::convert_min_max_n(vector<string> b
     return bins; 
 }
 
-// Method to process a TTree
-void BinningStructure::process_ttree(TTree* tree) {
+// Method to process a TChain
+void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     // Get branches from tree
     int hel;
     float Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
-    //tree->SetBranchAddress("hel", &hel);
+    tree->SetBranchAddress("hel", &hel);
     tree->SetBranchAddress("Mgg", &Mgg);
     tree->SetBranchAddress("Mh", &Mh);
     tree->SetBranchAddress("phi_h", &phi_h);
@@ -35,31 +35,41 @@ void BinningStructure::process_ttree(TTree* tree) {
     tree->SetBranchAddress("th", &th);
     tree->SetBranchAddress("prob_g1", &prob_g1);
     tree->SetBranchAddress("prob_g2", &prob_g2);
+    TFile *fout = new TFile(outfile,"RECREATE");
     // Loop over events in tree
     for (int i = 0; i < tree->GetEntries(); i++) {
+      if(i%10000==0)
+          cout << "Analyzed " << i << " of " << tree->GetEntries() << endl;
       tree->GetEntry(i);
+      
       // Get multidimensional index for this event
       vector<int> index = get_index(tree);
       // If index is valid, store data in bin
       if (index.size() == bin_names.size()) {
-    BinData bin_data = bin_data_map[index];
-    // Append data to bin
-    //bin_data.hel.push_back(hel);
-    bin_data.Mgg.push_back(Mgg);
-    bin_data.Mh.push_back(Mh);
-    bin_data.phi_h.push_back(phi_h);
-    bin_data.phi_R0.push_back(phi_R0);
-    bin_data.phi_R1.push_back(phi_R1);
-    bin_data.th.push_back(th);
-    bin_data.prob_g1.push_back(prob_g1);
-    bin_data.prob_g2.push_back(prob_g2);
-    // Store bin in map
-    bin_data_map[index] = bin_data;
+          if(bin_data_map[index].bintree==0){//create TTree
+              SetBinNames(bins,bin_data_map);
+              bin_data_map[index].bintree = new TTree(bin_data_map[index].binName,bin_data_map[index].binName);
+              bin_data_map[index].bintree->Branch("hel", &hel);
+              bin_data_map[index].bintree->Branch("Mgg", &Mgg);
+              bin_data_map[index].bintree->Branch("Mh", &Mh);
+              bin_data_map[index].bintree->Branch("phi_h", &phi_h);
+              bin_data_map[index].bintree->Branch("phi_R0", &phi_R0);
+              bin_data_map[index].bintree->Branch("phi_R1", &phi_R1);
+              bin_data_map[index].bintree->Branch("th", &th);
+              bin_data_map[index].bintree->Branch("prob_g1", &prob_g1);
+              bin_data_map[index].bintree->Branch("prob_g2", &prob_g2);
+          }
+          bin_data_map[index].bintree->Fill();
       }
     }
-    // Set all bin names
-    SetBinNames(bins,bin_data_map);
     
+    // Save all bins to output TTree
+    for (map<vector<int>, BinData>::iterator it = bin_data_map.begin(); it != bin_data_map.end(); ++it) {
+        (it->second).bintree->Write();
+    }
+    
+    // Close output file
+    fout->Close();
   }
 
 //Function set bin names of filled substructures
@@ -124,50 +134,4 @@ vector<BinData> BinningStructure::get_all_bins_data() {
       bins_data.push_back(it->second);
     }
     return bins_data;
-}
-
-// Method to write all bin information to a TTree
-void BinningStructure::write_bin_data_map(string outfile){
-    
-    vector<BinData> bdv = get_all_bins_data();
-    TFile *f = new TFile(outfile.c_str(), "RECREATE");
-      for (auto bin_data : bdv) {
-        TTree *t = new TTree(bin_data.binName, bin_data.binName);
-        int _hel;
-        float _Mgg;
-        float _Mh;
-        float _phi_h;
-        float _phi_R0;
-        float _phi_R1;
-        float _th;
-        float _prob_g1;
-        float _prob_g2;
-          
-        //t->Branch("hel", &_hel);
-        t->Branch("Mgg", &_Mgg);
-        t->Branch("Mh", &_Mh);
-        t->Branch("phi_h", &_phi_h);
-        t->Branch("phi_R0", &_phi_R0);
-        t->Branch("phi_R1", &_phi_R1);
-        t->Branch("th", &_th);
-        t->Branch("prob_g1", &_prob_g1);
-        t->Branch("prob_g2", &_prob_g2);
-        for (int i = 0; i < (int)bin_data.Mgg.size(); ++i) {
-         // _hel = bin_data.hel[i];
-          _Mgg = bin_data.Mgg[i];
-          _Mh = bin_data.Mh[i];
-          _phi_h = bin_data.phi_h[i];
-          _phi_R0 = bin_data.phi_R0[i];
-          _phi_R1 = bin_data.phi_R1[i];
-          _th = bin_data.th[i];
-          _prob_g1 = bin_data.prob_g1[i];
-          _prob_g2 = bin_data.prob_g2[i];
-          t->Fill();
-        }
-        t->Print();
-        t->Write();
-        delete t;
-      }
-      f->Close();
-      delete f;
 }
