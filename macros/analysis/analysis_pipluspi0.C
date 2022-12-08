@@ -1,7 +1,7 @@
 #include "../../src/BinningStructure.C"
 //#include "../../src/sPlotTools.C"
 
-int analysis_pipluspi0_v2(const char * input_file = "../process/test.root",
+int analysis_pipluspi0(const char * input_file = "../process/test.root",
 			  const char * output_file = ""){
   
   vector<string> bin_names={"x","Mh","z"};
@@ -23,5 +23,6 @@ int analysis_pipluspi0_v2(const char * input_file = "../process/test.root",
   //}
   
   //fit_unbinned_splot_pipi0(bv.at(0));
+
   return 0;
 }
