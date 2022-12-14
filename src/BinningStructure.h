@@ -4,24 +4,7 @@ using namespace std;
 struct BinData {
   TString binName;
   TTree *bintree = 0;
-  // TTree information
-    
-  vector<int>    hel;
-  vector<double> Mgg;
-  vector<double> Mh;
-  vector<double> phi_h;  
-  vector<double> phi_R0;
-  vector<double> phi_R1;
-  vector<double> th;
-  vector<double> prob_g1;
-  vector<double> prob_g2;
-    
-  // Fitting information
-  vector<double> sweight_sig;
-  vector<double> sweight_bg;
-  std::map<std::string, double> parMap_diphoton;
-  std::map<std::string, double> parMap_7mod;
-    
+  int entries=0;
 };
 
 class BinningStructure {

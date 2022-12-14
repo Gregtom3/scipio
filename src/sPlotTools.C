@@ -1,168 +1,135 @@
 #include "sPlotTools.h"
 
-/*void sPlotTools::fit_unbinned_splot_pipi0(BinData binData) {
-    // ---------------------------------------------------------------
+sPlotTools::sPlotTools(const char * input_dir){
+    _input_dir = string(input_dir);
+    _input_file = string(input_dir)+"/binned.root";
     
-    //                        DIPHOTON FITTING
+}
+
+void sPlotTools::splot_pipluspi0(int L, double threshold, double Mggmin, double Mggmax){
     
-    // ---------------------------------------------------------------
-    // Create RooRealVars for the observables
-    RooRealVar hel("hel","hel",-2,2);
-    RooRealVar phi_h("phi_h", "phi_h", 0, 2*TMath::Pi());
-    RooRealVar phi_R("phi_R", "phi_R", 0, 2*TMath::Pi());
-    RooRealVar Mdiphoton("Mdiphoton", "Mdiphoton", 0.08, 0.22);
-    RooArgSet vars(Mdiphoton);
-    // Create the RooDataSet
-    std::vector<double> phi_h_vec = binData.phi_h;
-    std::vector<double> phi_R_vec = binData.phi_R0;
-    std::vector<double> Mdiphoton_vec = binData.Mgg;
-    RooDataSet data("data", "data", vars);
-    for (int i = 0; i < Mdiphoton_vec.size(); i++) {
-      Mdiphoton.setVal(Mdiphoton_vec[i]);
-      data.add(vars);
+    auto mods = get_modulations(L);
+    vector<string> char_vec = mods.first;
+    vector<string> str_vec = mods.second;
+
+    _infile = new TFile(_input_file.c_str(),"READ");
+    // TFile containing many TTrees
+    TIter iter(_infile->GetListOfKeys());
+    TKey *key;
+
+    while ((key = (TKey*)iter.Next())) {
+    if (strstr(key->GetClassName(), "TTree")) {
+        // Load the TTree
+        TTree *tree = (TTree*)key->ReadObj();
+        cout << "\n\n----------------------------------------------------\n\n";
+        cout << "      sPlot on TTree " << tree->GetName() << "\n\n";
+        cout << "----------------------------------------------------\n\n";
+        
+        sPlot RF;
+        RF.SetUp().SetOutDir(Form("%s/bru_out/%s/",_input_dir.c_str(),tree->GetName()));
+        ///////////////////////////////Load Variables
+        RF.SetUp().LoadVariable(Form("Mgg[%f,%f]",Mggmin,Mggmax));//should be same name as variable in tree
+        RF.SetUp().LoadAuxVar("prob_g1[0,10]");
+        RF.SetUp().LoadAuxVar("prob_g2[0,10]");
+
+        RF.SetUp().SetIDBranchName("fgID");
+        int k = 0;
+        /////////////////////////////Make Model Signal
+        RF.SetUp().FactoryPDF("Gaussian::Signal( Mgg, mean[0.131,0.129,0.14], sigma[0.1,0.0001,0.2] )");
+        RF.SetUp().LoadSpeciesPDF("Signal",1);
+        ////////////////////////////////Additional background
+        RF.SetUp().FactoryPDF("Chebychev::BG(Mgg,{a0[-0.1,-1,1],a1[0.1,-1,1]})");
+        RF.SetUp().LoadSpeciesPDF("BG",1);
+
+        RF.SetUp().AddCut(Form("prob_g1>%f",threshold));
+        RF.SetUp().AddCut(Form("prob_g2>%f",threshold));
+        ///////////////////////////Load Data
+        RF.LoadData(tree->GetName(),_input_file.c_str());
+        //Run the fit here
+        Here::Go(&RF);
+        TCanvas *c = new TCanvas();
+        RF.DrawWeighted("Mgg>>(100,0,0.25)","Signal");
+        //compare to true signal
+        c->SaveAs(Form("%s/bru_out/%s/quickDiphotonSig.png",_input_dir.c_str(),tree->GetName()));
+        
+        
+        RF.DeleteWeightedTree();
+        /////////////////////////////Create azimuthal modulation fit manager
+        FitManager FM;
+        FM.SetUp().SetOutDir(Form("%s/bru_obs/%s/",_input_dir.c_str(),tree->GetName()));
+        ///////////////////////////////Load Variables
+        FM.SetUp().LoadVariable("phi_h[-3.14159265,3.14159265]");
+        FM.SetUp().LoadVariable("phi_R0[-3.14159265,3.14159265]");
+        FM.SetUp().LoadCategory("hel[Polp=1,Polm=-1]");
+        FM.SetUp().LoadAuxVar("prob_g1[0,10]");
+        FM.SetUp().LoadAuxVar("prob_g2[0,10]");
+        FM.SetUp().SetIDBranchName("fgID");
+        FM.SetUp().AddCut(Form("prob_g1>%f",threshold));
+        FM.SetUp().AddCut(Form("prob_g2>%f",threshold));
+        ///////////////////////////////Load parameters
+        for (string cc: char_vec)
+            FM.SetUp().LoadParameter(Form("%s[0.0,-1,1]",cc.c_str()));
+        FM.SetUp().LoadParameter("Pol[0.88]");
+        ///////////////////////////////Load formulas
+        for (string ss: str_vec)
+            FM.SetUp().LoadFormula(ss);
+        ///////////////////////////////Load PDF
+        string pdf = "RooComponentsPDF::AziFit(1,{phi_h,phi_R0,hel,Pol},=";
+        for(unsigned int i = 0 ; i < str_vec.size() ; i++){
+            pdf+=char_vec.at(i);
+            pdf+=";mod";
+            pdf+=to_string(i);
+            if(i==str_vec.size()-1)
+                pdf+=")";
+            else
+                pdf+=":";
+        }
+        FM.SetUp().FactoryPDF(pdf);
+        FM.SetUp().LoadSpeciesPDF("AziFit",1);
+        FM.LoadData(tree->GetName(),Form("%s/bru_out/%s/DataWeightedTree.root",_input_dir.c_str(),tree->GetName()));
+        FM.Data().LoadWeights("Signal",Form("%s/bru_out/%s/Tweights.root",_input_dir.c_str(),tree->GetName()));
+        Here::Go(&FM);
+                    
+        }
     }
-    // Create the signal model
-    RooRealVar mean("mean", "mean", 0.133, 0.08, 0.22);
-    RooRealVar stddev("stddev", "stddev", 0.1, 0.001, 0.2);
-    RooGaussian signal("signal", "signal", Mdiphoton, mean, stddev);
-    // Create the background model
-    RooRealVar a("a", "a", 0.1, -1., 1.);
-    RooRealVar b("b", "b", 0.1, -1., 1.);
-    RooPolynomial background("background", "background", Mdiphoton, RooArgSet(a, b));
-    // Create the composite model
-    RooRealVar Nsig("Nsig", "Nsig", 0, 1000);
-    RooRealVar Nbkg("Nbkg", "Nbkg", 0, 1000);
-    RooAddPdf model("model", "model", RooArgList(signal, background), RooArgList(Nsig, Nbkg));
-    // Perform the fit
-    model.fitTo(data, RooFit::Minimizer("Minuit2"));
-    // Save diphoton fit parameters
-    binData.parMap_diphoton = saveParamsAndErrors(model)
-    // ---------------------------------------------------------------
-    
-    //                        SPLOT MODULATION FITTING
-    
-    // ---------------------------------------------------------------    
-    // Perform the unbinned SPlot fit
-    RooStats::SPlot* sData = new RooStats::SPlot("sData", "sData", data, &model, RooArgList(Nsig, Nbkg));
-    // Create a weighted dataset
-    RooRealVar sweight("sweight", "sweight", -100, 100);
-    RooArgSet vars_sweight(phi_h,phi_R,sweight);
-    RooDataSet data_sweight("data_sweight", "data_sweight", vars_sweight, WeightVar("sweight"));
-    
-    for (int i = 0; i < phi_h_vec.size(); i++) {
-      phi_h.setVal(phi_h_vec[i]);
-      phi_R.setVal(phi_R_vec[i]);
-      sweight.setVal(sData->GetSWeight(i,"Nsig"));
-      data_sweight.add(vars_sweight, sweight.getVal());
-    }
-    // Get the weights and save them to the TTree
-    Double_t weight_sig = sData->GetYieldFromSWeight("Nsig");
-    Double_t weight_bkg = sData->GetYieldFromSWeight("Nbkg");
-    // Perform the unbinned fit to the azimuthal modulation
-    RooRealVar A("A", "A", 0., -1., 1.);
-    RooRealVar B("B", "B", 0., -1., 1.);
-    RooRealVar C("C", "C", 0., -1., 1.);
-    RooRealVar D("D", "D", 0., -1., 1.);
-    RooRealVar E("E", "E", 0., -1., 1.);
-    RooRealVar F("F", "F", 0., -1., 1.);
-    RooRealVar G("G", "G", 0., -1., 1.);
-    RooGenericPdf mod_model("mod_model", "1. + A*sin(2*phi_h-2*phi_R)+B*sin(phi_h-phi_R)+C*sin(-phi_h+2*phi_R)+D*sin(phi_R)+E*sin(phi_h)+F*sin(2*phi_h-phi_R)+G*sin(3*phi_h-2*phi_R)",RooArgList(A,B,C,D,E,F,G,phi_h,phi_R));
-    mod_model.fitTo(data_sweight, SumW2Error(true));
-    // Save splot fit parameters
-    binData.parMap_7mod = saveParamsAndErrors(mod_model)
-    // Clean up
-    delete sData;
 }
-*/
-std::map<std::string, double> sPlotTools::saveParamsAndErrors(RooAddPdf model) {
-    // Create the std::map to store the parameters and errors
-    std::map<std::string, double> fit_params;
-    RooArgList params = model.getParameters(data);
-    int n_params = params.getSize();
+pair<vector<string>, vector<string>> sPlotTools::get_modulations(int L){
     
-    for (int i = 0; i < n_params; i++) {
-        RooRealVar* param = (RooRealVar*) params.at(i);
-        std::string name = param->GetName();
-        double value = param->getVal();
-        double error = res->correlation(*param);
-        fit_params.insert(std::pair<std::string, double>(name, value));
-        fit_params.insert(std::pair<std::string, double>(name + "_error", error));
+    vector<string> char_vec;
+    vector<string> str_vec;
+    for (int l = 0; l <= L; l++)
+    {
+        for (int m = 1; m <= l; m++)
+        {
+            
+            string str = "@Pol[]*@hel[]*sin(" + to_string(m) + "*@phi_h[]-" + to_string(m) +"*@phi_R0[])";
+            str_vec.push_back(str);
+        }
+        for (int m = -l; m <= l; m++)
+        {
+            string str = "@Pol[]*@hel[]*sin(" + to_string(1-m) +"*@phi_h[]+" + to_string(m) +"*@phi_R0[])";
+            str_vec.push_back(str);
+        }
     }
     
-    return fit_params;
+    // Remove duplicate entries
+    sort(str_vec.begin(), str_vec.end());
+    str_vec.erase(unique(str_vec.begin(), str_vec.end()), str_vec.end());
+    
+    // Add the mod line to the front
+    for(unsigned int i = 0 ; i < str_vec.size(); i++){
+        str_vec.at(i)="mod" + to_string(i) + "=" + str_vec.at(i);
+    }
+    
+    int cidx=0;
+    for (char c = 'A'; cidx<str_vec.size(); c++) 
+    {
+        string str = "";
+        str += c;
+        char_vec.push_back(str);
+        cidx++;
+    }
+    
+    return make_pair(char_vec, str_vec); 
+    
 }
-
-
-
-void ReadinTFileTree(TFile *file, TTree *tree)
-{
-  // Read in the TFile and TTree
-  tree = (TTree*)file->Get("tree");
-  double phi_h, phi_R, Mdiphoton;
-  tree->SetBranchAddress("phi_h", &phi_h);
-  tree->SetBranchAddress("phi_R", &phi_R);
-  tree->SetBranchAddress("Mdiphoton", &Mdiphoton);
-  tree->GetEntry(0);
-}
-
-void PerformSPlotFit(TFile *file, TTree *tree, RooDataSet *data, RooRealVar *x, RooRealVar *mean, RooRealVar *stddev, RooRealVar *A, RooRealVar *hel, RooArgSet *varset, RooAddPdf *model, RooFitResult *fitres)
-{
-  // Read in the TFile and TTree
-  ReadinTFileTree(file, tree);
-  // Initialize RooRealVars
-  x = new RooRealVar("Mdiphoton","Mdiphoton",0.08,0.22);
-  mean = new RooRealVar("mean","mean of gaussian",0.133,0.08,0.22);
-  stddev = new RooRealVar("stddev","stddev of gaussian",0.1,0.001,0.2);
-  A = new RooRealVar("A","Amp of modulation",0.1,-2.,2.);
-  hel = new RooRealVar("hel","hel of modulation",-1.);
-  // Create the RooDataSet
-  data = new RooDataSet("data","data",tree,*x);
-  // Create the signal pdf
-  RooGaussian gauss("gauss","gauss(x,mean,stddev)",*x,*mean,*stddev);
-  // Create the background pdf
-  RooPolynomial poly("poly","poly(x)",*x);
-  // Add the signal and background pdfs
-  varset = new RooArgSet(*x);
-  model = new RooAddPdf("model","model",RooArgList(gauss,poly),RooArgList(*x));
-  // Perform the sPlot fit to the Mdiphoton distribution
-  fitres = model->fitTo(*data,Save(),Minos(kFALSE));
-  // Calculate the sWeights
-  RooStats::SPlot *sData = new RooStats::SPlot("sData","An SPlot",*data,model,RooArgList(*x));
-  // Adding the sWeights to the TTree
-  tree->Branch("sWeight",&sData->GetYieldFromSWeight());
-}
-
-void PerformAzimuthalFit(TFile *file, TTree *tree, RooRealVar *phi_h, RooRealVar *phi_R, RooRealVar *A, RooRealVar *hel, RooArgSet *varset, RooAddPdf *modAzimuthal, RooFitResult *fitres)
-{
-  // Read in the TFile and TTree
-  ReadinTFileTree(file, tree);
-  // Initialize RooRealVars
-  phi_h = new RooRealVar("phi_h","phi_h",-M_PI,M_PI);
-  phi_R = new RooRealVar("phi_R","phi_R",-M_PI,M_PI);
-  A = new RooRealVar("A","Amp of modulation",0.1,-2.,2.);
-  hel = new RooRealVar("hel","hel of modulation",-1.);
-  // Create the azimuthal pdf
-  RooFormulaVar f("f","1+hel*A*sin(phi_h-phi_R)",RooArgList(*hel,*A,*phi_h,*phi_R));
-  // Add the pdf to the RooArgSet
-  varset = new RooArgSet(*phi_h,*phi_R);
-  modAzimuthal = new RooAddPdf("modAzimuthal","modAzimuthal",RooArgList(f),RooArgList(*varset));
-  // Perform the azimuthal fit, weighted by the sWeights
-  fitres = modAzimuthal->fitTo(*data,Weights(sData->GetYieldFromSWeight()),Save(),Minos(kFALSE));
-}
-
-// Initialize the TFile and TTree
-  TFile *file = TFile::Open("example.root");
-  TTree *tree = new TTree();
-  // Initialize RooRealVars and RooDataSets
-  RooRealVar *x, *mean, *stddev, *A, *hel;
-  RooDataSet *data;
-  // Initialize RooArgSets and RooAddPdfs
-  RooArgSet *varset;
-  RooAddPdf *model, *modAzimuthal;
-  // Initialize RooFitResults
-  RooFitResult *fitres;
-  // Perform SPlot fit
-  PerformSPlotFit(file, tree, data, x, mean, stddev, A, hel, varset, model, fitres);
-  // Perform azimuthal fit
-  PerformAzimuthalFit(file, tree, phi_h, phi_R, A, hel, varset, modAzimuthal, fitres);
-  return 0;

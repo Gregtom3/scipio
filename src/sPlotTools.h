@@ -4,11 +4,16 @@ using namespace RooFit;
 class sPlotTools{
     public:
     // Constructor
-    sPlotTools(){}
+    sPlotTools(const char *);
   
-    // Perform unbinned Mdiphoton fit and then sWeighted fit of PiPi0 asymmetries
-    void fit_unbinned_splot_pipi0(BinData);
-        
-    std::map<std::string, double> saveParamsAndErrors(RooAddPdf);
+    void splot_pipluspi0(int, double, double, double);
+    
+    pair<vector<string>, vector<string>> get_modulations(int);
+    
+   
+    private:
+        TFile *_infile;
+        string _input_dir;
+        string _input_file;
 };
 
