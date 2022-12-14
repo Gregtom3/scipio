@@ -33,7 +33,7 @@ memPerCPU=2000
 # ----------------------------------------------------------------------------------------------
 
 # Create list of input files
-input_files=$volatiledir"/postprocess_$preprocess/*$ana*.root"
+input_files=$volatiledir"/$preprocess"/predict_pi0/*$ana*.root"
 
 # ----------------------------------------------------------------------------------------------
 
@@ -101,7 +101,7 @@ do
         done
     done
     
-    outfile="${infile//postprocess/pipluspi0}"
+    outfile="${infile//predict_pi0/postprocess_pipluspi0}"
     
     slurmshell=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.sh"
     slurmslurm=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.slurm"

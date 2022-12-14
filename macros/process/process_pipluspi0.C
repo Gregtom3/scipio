@@ -1,27 +1,29 @@
 #include "../../src/Kinematics.C"
 
-int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/clas12analysis.sidis.data/rga/ML/postprocess_catboost/MC_3051_0.root",
-		      const char * output_file = "test.root",
-		      const float beamE = 10.604,
-		      const int maxEvents = 999999999){
+int process_pipluspi0(
+    const char * input_file = "/volatile/clas12/users/gmat/clas12analysis.sidis.data/rga/ML/catboost/predict_pi0/nSidis_5032.root",
+    const char * output_file = "/volatile/clas12/users/gmat/clas12analysis.sidis.data/rga/ML/catboost/postprocess_pipluspi0/nSidis_5032.root",
+		      const float beamE = 10.604){
 
   // Input tfile and tree
   TFile *infile = new TFile(input_file);
   TTree *intree = (TTree*)infile->Get("PostProcessedEvents");
   
   //declare all necessary variables
-  float x, Q2, W;
-  int hel;
+  float x, Q2, W, Pol;
+  int hel,run;
   int nPart=100;
   float px[nPart], py[nPart], pz[nPart], E[nPart], theta[nPart], eta[nPart], phi[nPart], catboost_weight[nPart];
   int pid[nPart] ,parentID[nPart],parentPID[nPart];
   //link the TBranches to the variables
+  intree->SetBranchAddress("run",&run);
+  intree->SetBranchAddress("Pol",&Pol);
   intree->SetBranchAddress("hel",&hel);
   intree->SetBranchAddress("MCmatch_parent_id", &parentID);
   intree->SetBranchAddress("MCmatch_parent_pid", &parentPID);
   intree->SetBranchAddress("x",&x);
   intree->SetBranchAddress("Q2",&Q2);
-  intree->SetBranchAddress("W",&W);
+  intree->SetBranchAddress("W",&W); 
   intree->SetBranchAddress("nPart",&nPart);
   intree->SetBranchAddress("px",px);
   intree->SetBranchAddress("py",py);
@@ -38,10 +40,11 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   TTree* outtree = new TTree("dihadron","dihadron");
 
   // Declare branch variables
-  Float_t Mgg, Mh, phi_h, phi_R0, phi_R1, th, zpiplus, zpi0, xFpiplus, xFpi0, prob_g1, prob_g2, z, xF;
+  Float_t Mgg, Mh, phi_h, phi_R0, phi_R1, th, zpiplus, zpi0, xFpiplus, xFpi0, prob_g1, prob_g2, z, xF, Mx;
   int truePi0=-1;
   int halftruePi0=-1;
   // Create branches
+  outtree->Branch("Pol", &Pol, "Pol/F");
   outtree->Branch("hel", &hel, "hel/I");
   outtree->Branch("truePi0", &truePi0, "truePi0/I");
   outtree->Branch("halftruePi0", &halftruePi0, "halftruePi0/I");
@@ -60,6 +63,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
   outtree->Branch("xFpiplus", &xFpiplus, "xFpiplus/F");
   outtree->Branch("xFpi0", &xFpi0, "xFpi0/F");
   outtree->Branch("xF", &xF, "xF/F");
+  outtree->Branch("Mx", &Mx, "Mx/F");
   outtree->Branch("prob_g1", &prob_g1, "prob_g1/F");
   outtree->Branch("prob_g2", &prob_g2, "prob_g2/F");
 
@@ -74,6 +78,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
     intree->GetEntry(i);
     // Find electron
     TLorentzVector electron;
+    double ebeam=0.0;
     for (Int_t j=0; j<nPart; j++){
       if(pid[j]==11)
 	electron.SetPxPyPzE(px[j],py[j],pz[j],E[j]);
@@ -122,6 +127,7 @@ int process_pipluspi0(const char * input_file = "/volatile/clas12/users/gmat/cla
 	      z = zpiplus+zpi0;
 	      truePi0=((parentID[j]==parentID[k] && parentPID[j]==111 && parentPID[k]==111))?1:0;
           halftruePi0=((parentID[j]!=parentID[k] && parentPID[j]==111 ^ parentPID[k]==111))?1:0; // '^' --> XOR
+          Mx = (init_electron+init_target-electron-dihadron).M();
 	      // fill tree
 	      outtree->Fill();
 	    }
