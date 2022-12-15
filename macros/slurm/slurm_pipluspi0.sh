@@ -1,7 +1,7 @@
 #!/bin/bash
 USERNAME="$USER"
 hl="--------------------------------------------------------------------------------------------------------------------------------------------"
-ana="nSidis" # either MC or nSidis
+ana="MC" # either MC or nSidis
 preprocess="catboost" # catboost or particleNet
 volatiledir=/volatile/clas12/users/gmat/clas12analysis.sidis.data/rga/ML
 pathtoscipio=/work/clas12/users/gmat/scipio
@@ -33,7 +33,7 @@ memPerCPU=2000
 # ----------------------------------------------------------------------------------------------
 
 # Create list of input files
-input_files=$volatiledir"/$preprocess"/predict_pi0/*$ana*.root"
+input_files=$volatiledir"/$preprocess"/predict_pi0/*$ana*.root
 
 # ----------------------------------------------------------------------------------------------
 
@@ -115,7 +115,7 @@ do
 #SBATCH --account=clas12
 #SBATCH --partition=production
 #SBATCH --mem-per-cpu=${memPerCPU}
-#SBATCH --job-name=job_${ana}_${runNumber}_${preprocess}
+#SBATCH --job-name=job_${ana}_${RUNNAME}_${preprocess}
 #SBATCH --cpus-per-task=${nCPUs}
 #SBATCH --time=24:00:00
 #SBATCH --output=${logdir}/${ana}_${RUNNAME}_${preprocess}.out
