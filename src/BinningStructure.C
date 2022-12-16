@@ -55,10 +55,10 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
               SetBinNames(bins,bin_data_map);
               bin_data_map[index].bintree = new TTree(bin_data_map[index].binName,bin_data_map[index].binName);
               bin_data_map[index].bintree->Branch("fgID", &bin_data_map[index].entries);
-              bin_data_map[index].bintree->BrancH("x",&x);
-              bin_data_map[index].bintree->BrancH("Q2",&Q2);
-              bin_data_map[index].bintree->BrancH("Mx",&Mx);
-              bin_data_map[index].bintree->BrancH("z",&z);
+              bin_data_map[index].bintree->Branch("x",&x);
+              bin_data_map[index].bintree->Branch("Q2",&Q2);
+              bin_data_map[index].bintree->Branch("Mx",&Mx);
+              bin_data_map[index].bintree->Branch("z",&z);
               bin_data_map[index].bintree->Branch("hel", &hel);
               bin_data_map[index].bintree->Branch("Mgg", &Mgg);
               bin_data_map[index].bintree->Branch("Mh", &Mh);

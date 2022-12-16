@@ -14,6 +14,6 @@ class sPlotTools{
     private:
         TFile *_infile;
         string _input_dir;
-        string _input_file;
+        vector<string> _input_files;
 };
 
