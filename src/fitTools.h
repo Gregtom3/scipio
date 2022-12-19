@@ -1,10 +1,10 @@
 using namespace std;
 using namespace RooFit;
 
-class sPlotTools{
+class fitTools{
     public:
     // Constructor
-    sPlotTools(const char *);
+    fitTools(const char *);
   
     void splot_pipluspi0(int, double, double, double);
     

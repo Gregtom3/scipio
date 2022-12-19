@@ -1,6 +1,6 @@
-#include "sPlotTools.h"
+#include "fitTools.h"
 
-sPlotTools::sPlotTools(const char * input_dir){
+fitTools::fitTools(const char * input_dir){
     _input_dir = string(input_dir);
     TSystemDirectory dir(input_dir,input_dir);
     TList *files = dir.GetListOfFiles();
@@ -17,7 +17,7 @@ sPlotTools::sPlotTools(const char * input_dir){
     }
 }
 
-void sPlotTools::splot_pipluspi0(int L, double threshold, double Mggmin, double Mggmax){
+void fitTools::splot_pipluspi0(int L, double threshold, double Mggmin, double Mggmax){
     
     auto mods = get_modulations(L);
     vector<string> char_vec = mods.first;
@@ -106,7 +106,7 @@ void sPlotTools::splot_pipluspi0(int L, double threshold, double Mggmin, double 
         }
     }
 }
-pair<vector<string>, vector<string>> sPlotTools::get_modulations(int L){
+pair<vector<string>, vector<string>> fitTools::get_modulations(int L){
     
     vector<string> char_vec;
     vector<string> str_vec;
