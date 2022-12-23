@@ -24,9 +24,12 @@ map<string, vector<double>> BinningStructure::convert_min_max_n(vector<string> b
 // Method to process a TChain
 void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     // Get branches from tree
-    int hel;
+    int hel,run;
+    int isGoodEventWithoutML;
     float x,Q2,Mx,z, Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
+    tree->SetBranchAddress("run", &run);
     tree->SetBranchAddress("hel", &hel);
+    tree->SetBranchAddress("isGoodEventWithoutML",&isGoodEventWithoutML);
     tree->SetBranchAddress("x", &x);
     tree->SetBranchAddress("Q2", &Q2);
     tree->SetBranchAddress("Mx", &Mx);
@@ -55,6 +58,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
               SetBinNames(bins,bin_data_map);
               bin_data_map[index].bintree = new TTree(bin_data_map[index].binName,bin_data_map[index].binName);
               bin_data_map[index].bintree->Branch("fgID", &bin_data_map[index].entries);
+              bin_data_map[index].bintree->Branch("run", &run);
               bin_data_map[index].bintree->Branch("x",&x);
               bin_data_map[index].bintree->Branch("Q2",&Q2);
               bin_data_map[index].bintree->Branch("Mx",&Mx);
@@ -68,6 +72,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
               bin_data_map[index].bintree->Branch("th", &th);
               bin_data_map[index].bintree->Branch("prob_g1", &prob_g1);
               bin_data_map[index].bintree->Branch("prob_g2", &prob_g2);
+              bin_data_map[index].bintree->Branch("isGoodEventWithoutML",&isGoodEventWithoutML);
           }
             bin_data_map[index].bintree->Fill();
             bin_data_map[index].entries++;
