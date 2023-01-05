@@ -22,7 +22,7 @@ map<string, vector<double>> BinningStructure::convert_min_max_n(vector<string> b
 }
 
 // Method to process a TChain
-void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
+void BinningStructure::process_ttree(TChain *tree,const char * outfile, string version="") {
     // Get branches from tree
     int hel,run;
     int isGoodEventWithoutML;
@@ -49,7 +49,6 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
       if(i%10000==0)
           cout << "Analyzed " << i << " of " << tree->GetEntries() << endl;
       tree->GetEntry(i);
-      
       // Get multidimensional index for this event
       vector<int> index = get_index(tree);
       // If index is valid, store data in bin

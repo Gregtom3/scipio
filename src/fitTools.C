@@ -1,11 +1,11 @@
 #include "fitTools.h"
 
-fitTools::fitTools(const char * input_dir, const char * input_file, const char * input_tree){
+fitTools::fitTools(const char * input_dir, const char * input_file, const char * input_tree, int isMC, string version, double threshold){
     _input_dir  = string(input_dir);
     _input_file = string(input_file);
     _infile = new TFile(input_file,"READ");
     _intree = (TTree*)_infile->Get(input_tree);
-    
+
       
     cout << "\n\n----------------------------------------------------\n\n";
     cout << "      TFile: " << _infile->GetName() << "\n";
@@ -13,6 +13,56 @@ fitTools::fitTools(const char * input_dir, const char * input_file, const char *
     cout << "      Entries: " << _intree->GetEntries() << "\n";
     cout << "----------------------------------------------------\n\n";
 
+    if(isMC==0){
+        if(version=="all"){
+            _runMin=-100000;
+            _runMax=100000;
+            _polarization=0.8639;
+            _prefix=Form("nSidis_%s",_intree->GetName());
+        }
+        else if(version=="Fall2018_inbending"){
+            _runMin=5032;
+            _runMax=5332;
+            _polarization=0.8592;
+            _prefix=Form("nSidis_Fall2018_inbending_%s",_intree->GetName());
+        }
+        else if(version=="Fall2018_outbending"){
+            _runMin=5333;
+            _runMax=5666;
+            _polarization=0.8922;
+            _prefix=Form("nSidis_Fall2018_outbending_%s",_intree->GetName());
+        }
+        else if(version=="Spring2019_inbending"){
+            _runMin=6616;
+            _runMax=6783;
+            _polarization=0.8453;
+            _prefix=Form("nSidis_Spring2019_inbending_%s",_intree->GetName());
+        }
+    }
+    else
+    {
+        if(version=="all"){
+            _runMin=-100000;
+            _runMax=100000;
+            _polarization=1;
+            _prefix=Form("MC_%s",_intree->GetName());
+        }
+        else if(version=="MC_inbending"){
+            _runMin=-11;
+            _runMax=-11;
+            _polarization=1;
+            _prefix=Form("MC_inbending_%s",_intree->GetName());
+        }
+        else if(version=="MC_outbending"){
+            _runMin=11;
+            _runMax=11;
+            _polarization=1;
+            _prefix=Form("MC_outbending_%s",_intree->GetName());
+        }
+    }
+    if(threshold==1){
+        _prefix=_prefix+string("_noML");
+    }
 }
 
 
@@ -40,13 +90,13 @@ void fitTools::splot_pipluspi0(int L, double threshold, double Mggmin, double Mg
 void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin, double Mggmax){
     
     sPlot RF;
-    RF.SetUp().SetOutDir(Form("%s/bru_out/%s/",_input_dir.c_str(),_intree->GetName()));
+    RF.SetUp().SetOutDir(Form("%s/bru_out/%s/",_input_dir.c_str(),_prefix.c_str()));
     ///////////////////////////////Load Variables
     RF.SetUp().LoadVariable(Form("Mgg[%f,%f]",Mggmin,Mggmax));//should be same name as variable in tree
     RF.SetUp().LoadAuxVar("prob_g1[0,10]");
     RF.SetUp().LoadAuxVar("prob_g2[0,10]");
     RF.SetUp().LoadAuxVar("isGoodEventWithoutML[0,1]");
-
+    RF.SetUp().LoadAuxVar("run[-100000,100000]");
     RF.SetUp().SetIDBranchName("fgID");
     int k = 0;
     /////////////////////////////Make Model Signal
@@ -55,6 +105,9 @@ void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin,
     ////////////////////////////////Additional background
     RF.SetUp().FactoryPDF("Chebychev::BG(Mgg,{a0[-0.1,-1,1],a1[0.1,-1,1]})");
     RF.SetUp().LoadSpeciesPDF("BG",1);
+    ////////////////////////////////Cuts
+    RF.SetUp().AddCut(Form("run>=%d",_runMin));
+    RF.SetUp().AddCut(Form("run<=%d",_runMax));
     if(threshold!=1){ // Use ML
         RF.SetUp().AddCut(Form("prob_g1>%f",threshold));
         RF.SetUp().AddCut(Form("prob_g2>%f",threshold));
@@ -68,7 +121,7 @@ void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin,
     TCanvas *c = new TCanvas();
     RF.DrawWeighted("Mgg>>(100,0,0.25)","Signal");
     //compare to true signal
-    c->SaveAs(Form("%s/bru_out/%s/quickDiphotonSig.png",_input_dir.c_str(),_intree->GetName()));
+    c->SaveAs(Form("%s/bru_out/%s/quickDiphotonSig.png",_input_dir.c_str(),_prefix.c_str()));
 
 
     RF.DeleteWeightedTree();
@@ -80,16 +133,16 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
                                   double smin, double smax){
     
     ///////////////////////////// Create directory for saving output
-    gSystem->Exec(Form("mkdir -p %s/sdbnd_out/%s/",_input_dir.c_str(),_intree->GetName()));
+    gSystem->Exec(Form("mkdir -p %s/sdbnd_out/%s/",_input_dir.c_str(),_prefix.c_str()));
     
     ///////////////////////////// Create histogram 
     TH1F *h = new TH1F("Mdiphoton",";Mdiphoton [GeV];",100,Mggmin,smax);
     
     ///////////////////////////// Draw into the histogram
     if(threshold!=1) // Use ML
-        _intree->Draw("Mgg>>Mdiphoton",Form("prob_g1>%f&&prob_g2>%f&&(hel==1||hel==-1)",threshold,threshold),"goff");
+        _intree->Draw("Mgg>>Mdiphoton",Form("prob_g1>%f&&prob_g2>%f&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)",threshold,threshold,_runMin,_runMax),"goff");
     else             // Don't use ML
-        _intree->Draw("Mgg>>Mdiphoton","isGoodEventWithoutML==1&&(hel==1||hel==-1)","goff");
+        _intree->Draw("Mgg>>Mdiphoton",Form("isGoodEventWithoutML==1&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)",_runMin,_runMax),"goff");
     ///////////////////////////// Scale the histogram
     TH1F *hnorm = (TH1F*)h->Clone();
     hnorm->SetName("Mdiphoton_normed");
@@ -132,7 +185,7 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
     double u = 1-(bg->Integral(Mggmin,Mggmax)/sig->Integral(Mggmin,Mggmax));
     
     ///////////////////////////// Create TFile for saving output
-    TFile *sdbnd_out = new TFile(Form("%s/sdbnd_out/%s/sideband.root",_input_dir.c_str(),_intree->GetName()),"RECREATE");
+    TFile *sdbnd_out = new TFile(Form("%s/sdbnd_out/%s/sideband.root",_input_dir.c_str(),_prefix.c_str()),"RECREATE");
     TVectorD purity(1);
     purity[0]=u;
     TVectorD sigregion(2);
@@ -170,7 +223,11 @@ void fitTools::process_azi_FM(FitManager &FM, double threshold, double min, doub
     FM.SetUp().LoadAuxVar("prob_g2[0,10]");
     FM.SetUp().LoadAuxVar("isGoodEventWithoutML[0,1]");
     FM.SetUp().LoadAuxVar("Mgg[0,10]");
+    FM.SetUp().LoadAuxVar("run[-100000,100000]");
     FM.SetUp().SetIDBranchName("fgID");
+    ////////////////////////////////Cuts
+    FM.SetUp().AddCut(Form("run>=%d",_runMin));
+    FM.SetUp().AddCut(Form("run<=%d",_runMax));
     if(threshold!=1){ // use ML
         FM.SetUp().AddCut(Form("prob_g1>%f",threshold));
         FM.SetUp().AddCut(Form("prob_g2>%f",threshold));
@@ -207,11 +264,11 @@ void fitTools::splot_modulations(double threshold, double Mggmin, double Mggmax,
 
     /////////////////////////////Create azimuthal modulation fit manager
     FitManager FM;
-    FM.SetUp().SetOutDir(Form("%s/bru_obs/%s/",_input_dir.c_str(),_intree->GetName()));
+    FM.SetUp().SetOutDir(Form("%s/bru_obs/%s/",_input_dir.c_str(),_prefix.c_str()));
     process_azi_FM(FM,threshold,Mggmin,Mggmax,L);
     
-    FM.LoadData(_intree->GetName(),Form("%s/bru_out/%s/DataWeightedTree.root",_input_dir.c_str(),_intree->GetName()));
-    FM.Data().LoadWeights("Signal",Form("%s/bru_out/%s/Tweights.root",_input_dir.c_str(),_intree->GetName()));
+    FM.LoadData(_intree->GetName(),Form("%s/bru_out/%s/DataWeightedTree.root",_input_dir.c_str(),_prefix.c_str()));
+    FM.Data().LoadWeights("Signal",Form("%s/bru_out/%s/Tweights.root",_input_dir.c_str(),_prefix.c_str()));
     Here::Go(&FM);
     FM.Reset();
 }
@@ -220,19 +277,19 @@ void fitTools::sideband_modulations(string _input_file, double threshold, double
                                     double smin, double smax, int L){
     
     ///////////////////////////// Create directory for saving output
-    gSystem->Exec(Form("mkdir -p %s/sdbnd_obs/%s/",_input_dir.c_str(),_intree->GetName()));
+    gSystem->Exec(Form("mkdir -p %s/sdbnd_obs/%s/",_input_dir.c_str(),_prefix.c_str()));
     
     /////////////////////////////Create azimuthal modulation fit manager
     /////////////////////////////Do this for both the sigbg and bg region (diphoton and sdbnd)
     FitManager FM_sigbg;
-    FM_sigbg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/sigbg",_input_dir.c_str(),_intree->GetName()));
+    FM_sigbg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/sigbg",_input_dir.c_str(),_prefix.c_str()));
     process_azi_FM(FM_sigbg,threshold,Mggmin,Mggmax,L);
     FM_sigbg.LoadData(_intree->GetName(),_input_file.c_str());
     Here::Go(&FM_sigbg);
     FM_sigbg.Reset();
     
     FitManager FM_bg;
-    FM_bg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/bg",_input_dir.c_str(),_intree->GetName()));
+    FM_bg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/bg",_input_dir.c_str(),_prefix.c_str()));
     process_azi_FM(FM_bg,threshold, smin, smax, L);
     FM_bg.LoadData(_intree->GetName(),_input_file.c_str());
     Here::Go(&FM_bg);
@@ -261,12 +318,12 @@ pair<vector<string>, vector<string>> fitTools::get_modulations(int L){
         for (int m = 1; m <= l; m++)
         {
             
-            string str = "0.8692*@hel[]*sin(" + to_string(m) + "*@phi_h[]-" + to_string(m) +"*@phi_R0[])";
+            string str = string(Form("%f",_polarization))+"*@hel[]*sin(" + to_string(m) + "*@phi_h[]-" + to_string(m) +"*@phi_R0[])";
             str_vec.push_back(str);
         }
         for (int m = -l; m <= l; m++)
         {
-            string str = "0.8692*@hel[]*sin(" + to_string(1-m) +"*@phi_h[]+" + to_string(m) +"*@phi_R0[])";
+            string str = string(Form("%f",_polarization))+"*@hel[]*sin(" + to_string(1-m) +"*@phi_h[]+" + to_string(m) +"*@phi_R0[])";
             str_vec.push_back(str);
         }
     }

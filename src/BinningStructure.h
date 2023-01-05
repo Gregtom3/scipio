@@ -29,12 +29,12 @@ public:
     this->bin_names = bin_names;
     this->bins = bins;
   }
-    
+
     // Method to convert bin structure
     map<string, vector<double>> convert_min_max_n(vector<string>, map<string,double>, map<string,double>, map<string,int>);
     
     // Method to process a TTree
-    void process_ttree(TChain *, const char *);
+    void process_ttree(TChain *, const char *, string);
     
     // Method to set the bin names
     void SetBinNames(map<string, vector<double>>, map<vector<int>, BinData>&);
