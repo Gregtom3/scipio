@@ -36,7 +36,7 @@ class fitTools{
         void binned_pi0(double, double, double,
                         double, double);
         void sideband_modulations(string, double, double, double,
-                                  double, double , int);
+                                  double, double , int, string);
     
         void process_azi_FM(FitManager &, double, double, double, int);
     

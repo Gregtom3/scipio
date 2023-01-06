@@ -63,6 +63,7 @@ fitTools::fitTools(const char * input_dir, const char * input_file, const char *
     if(threshold==1){
         _prefix=_prefix+string("_noML");
     }
+    
 }
 
 
@@ -73,7 +74,8 @@ void fitTools::sideband_pipluspi0(int L, double threshold, double Mggmin, double
     binned_pi0(threshold, Mggmin, Mggmax, smin, smax);
 
     /////////////////////////////Perform azimuthal modulation fits
-    sideband_modulations(_input_file, threshold, Mggmin, Mggmax, smin, smax, L );
+    sideband_modulations(_input_file, threshold, Mggmin, Mggmax, smin, smax, L ,"sigbg");
+    sideband_modulations(_input_file, threshold, Mggmin, Mggmax, smin, smax, L ,"bg");
 
 }
 
@@ -89,6 +91,7 @@ void fitTools::splot_pipluspi0(int L, double threshold, double Mggmin, double Mg
         
 void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin, double Mggmax){
     
+    gROOT->cd();
     sPlot RF;
     RF.SetUp().SetOutDir(Form("%s/bru_out/%s/",_input_dir.c_str(),_prefix.c_str()));
     ///////////////////////////////Load Variables
@@ -125,7 +128,6 @@ void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin,
 
 
     RF.DeleteWeightedTree();
-    RF.Reset();
     
 }
 
@@ -171,7 +173,6 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
     
     ///////////////////////////// Perform fit
     hnorm->Fit(f_sdbnd,"R");
-    
     ///////////////////////////// Calculate purity
     TF1 * sig = new TF1("sig","gaus(0)",Mggmin,Mggmax);
     TF1 * bg = new TF1("bg","pol2(0)",Mggmin,Mggmax);
@@ -270,31 +271,31 @@ void fitTools::splot_modulations(double threshold, double Mggmin, double Mggmax,
     FM.LoadData(_intree->GetName(),Form("%s/bru_out/%s/DataWeightedTree.root",_input_dir.c_str(),_prefix.c_str()));
     FM.Data().LoadWeights("Signal",Form("%s/bru_out/%s/Tweights.root",_input_dir.c_str(),_prefix.c_str()));
     Here::Go(&FM);
-    FM.Reset();
 }
 
 void fitTools::sideband_modulations(string _input_file, double threshold, double Mggmin, double Mggmax,
-                                    double smin, double smax, int L){
+                                    double smin, double smax, int L, string version){
     
     ///////////////////////////// Create directory for saving output
     gSystem->Exec(Form("mkdir -p %s/sdbnd_obs/%s/",_input_dir.c_str(),_prefix.c_str()));
     
     /////////////////////////////Create azimuthal modulation fit manager
     /////////////////////////////Do this for both the sigbg and bg region (diphoton and sdbnd)
-    FitManager FM_sigbg;
-    FM_sigbg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/sigbg",_input_dir.c_str(),_prefix.c_str()));
-    process_azi_FM(FM_sigbg,threshold,Mggmin,Mggmax,L);
-    FM_sigbg.LoadData(_intree->GetName(),_input_file.c_str());
-    Here::Go(&FM_sigbg);
-    FM_sigbg.Reset();
+    if(version=="sigbg"){
+        FitManager FM_sigbg;
+        FM_sigbg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/sigbg",_input_dir.c_str(),_prefix.c_str()));
+        process_azi_FM(FM_sigbg,threshold,Mggmin,Mggmax,L);
+        FM_sigbg.LoadData(_intree->GetName(),_input_file.c_str());
+        Here::Go(&FM_sigbg);
+    }
     
-    FitManager FM_bg;
-    FM_bg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/bg",_input_dir.c_str(),_prefix.c_str()));
-    process_azi_FM(FM_bg,threshold, smin, smax, L);
-    FM_bg.LoadData(_intree->GetName(),_input_file.c_str());
-    Here::Go(&FM_bg);
-    FM_bg.Reset();
-    
+    if(version=="bg"){
+        FitManager FM_bg;
+        FM_bg.SetUp().SetOutDir(Form("%s/sdbnd_obs/%s/bg",_input_dir.c_str(),_prefix.c_str()));
+        process_azi_FM(FM_bg,threshold, smin, smax, L);
+        FM_bg.LoadData(_intree->GetName(),_input_file.c_str());
+        Here::Go(&FM_bg);
+    }
     
 }
 
