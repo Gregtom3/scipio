@@ -1,3 +1,6 @@
 [submodule "brufit"]
 	path = brufit
 	url = https://github.com/dglazier/brufit
+[submodule "nnPi0"]
+	path = nnPi0
+	url = https://github.com/Gregtom3/nnPi0
