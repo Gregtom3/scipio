@@ -1,15 +1,21 @@
 #!/bin/bash
 USERNAME="$USER"
 hl="--------------------------------------------------------------------------------------------------------------------------------------------"
-ana="MC" # either MC or nSidis
-preprocess="catboost" # catboost or particleNet
+ana=$1 # either MC or nSidis
+preprocess=$2 # catboost or particleNet
+inputdir=$3
+outputdir=$4
+script=$5
+# ----------------------------------------------------------------------------------------------
 volatiledir=/volatile/clas12/users/gmat/clas12analysis.sidis.data/rga/ML
 pathtoscipio=/work/clas12/users/gmat/scipio
+slurm=true
+input_files=$inputdir/*$ana*.root
 # ----------------------------------------------------------------------------------------------
 # Create log and slurm dir for execution
 logdir=""
 slurmdir=""
-NOW=$( date '+%F_%H_%M' )
+NOW=$( date '+%F_%H_%M_%S' )
 NOWdir=/farm_out/gmat/clas12analysis.sidis.data/rga/scipio/$NOW
 if [ -d "${NOWdir}/" ]; then
     rm -r ${NOWdir}
@@ -32,13 +38,11 @@ nCPUs=1
 memPerCPU=2000
 # ----------------------------------------------------------------------------------------------
 
-# Create list of input files
-input_files=$volatiledir"/$preprocess"/predict_pi0/*$ana*.root
 
 # ----------------------------------------------------------------------------------------------
 
 # Open the json file
-json_file="../../utils/subdata.json"
+json_file="/work/clas12/users/gmat/scipio/utils/subdata.json"
 
 # read in the json file
 json_string=$(cat $json_file)
@@ -67,8 +71,9 @@ headings=$(echo $json_string | sed 's/{//g' | sed 's/}//g' | sed 's/://g' | sed 
 # ----------------------------------------------------------------------------------------------
 
 
-for infile in $input_files 
+for infile in $input_files
 do
+    echo $infile
     # Extract last part of the file name
     FILENAME=${infile##*/}
     RUNNAME=""
@@ -97,20 +102,22 @@ do
                 # get the energy
                 energy=$(echo $json_string | grep -Po "$heading.*?Energy\K[^,}]+")
                 energy=${energy//[: ]/}
+                energy=${energy//[\"]/}
             fi
         done
     done
     
-    outfile="${infile//predict_pi0/postprocess_pipluspi0}"
+    outfile=$outputdir/${ana}_${RUNNAME}.root
     
-    slurmshell=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.sh"
-    slurmslurm=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.slurm"
+    if [ $slurm == true ]; then
+	slurmshell=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.sh"
+	slurmslurm=${slurmdir}"/${ana}_${RUNNAME}_${preprocess}.slurm"
 
-    touch $slurmshell
-    touch $slurmslurm
-    chmod +x $slurmshell
+	touch $slurmshell
+	touch $slurmslurm
+	chmod +x $slurmshell
 
-    cat >> $slurmslurm <<EOF
+	cat >> $slurmslurm <<EOF
 #!/bin/bash
 #SBATCH --account=clas12
 #SBATCH --partition=production
@@ -123,15 +130,17 @@ do
 $slurmshell
 EOF
 
-    cat >> $slurmshell << EOF
+	cat >> $slurmshell << EOF
 #!/bin/tcsh
 source /group/clas12/packages/setup.csh
 module load clas12/pro
 cd $pathtoscipio/macros/process
-clas12root -b -q process_pipluspi0.C\(\"${infile}\",\"${outfile}\",$energy\)
+clas12root -b -q $script\(\"${infile}\",\"${outfile}\",$energy\)
 echo "Done"
 EOF
 
-    sbatch $slurmslurm
-    
+	sbatch $slurmslurm
+    else
+	clas12root -b -q $pathtoscipio/macros/process/$script\(\"${infile}\",\"${outfile}\",$energy\)
+    fi
 done

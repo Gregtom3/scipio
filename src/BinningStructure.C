@@ -22,19 +22,35 @@ map<string, vector<double>> BinningStructure::convert_min_max_n(vector<string> b
 }
 
 // Method to process a TChain
-void BinningStructure::process_ttree(TChain *tree,const char * outfile, string version="") {
+void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     // Get branches from tree
     int hel,run;
     int isGoodEventWithoutML;
-    float x,Q2,Mx,z, Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
+    int MCmatch; // True if all important particles had a Monte Carlo match
+    float x,Q2,Mx,y,z, Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
+    float truex,trueQ2,trueMx,truez,trueMgg,trueMh,truephi_h,truephi_R0,truephi_R1,trueth;
+    int halftruePi0, truePi0;
+    int chi2CutPiPlus, truepid_gamma1, truepid_gamma2, truepid_pion, trueparentpid_gamma1, trueparentpid_gamma2, trueparentpid_pion;
+    Float_t eE, eth, ephi;
+    Float_t g1E, g2E, piE;
+    Float_t g1th, g2th, pith;
+    Float_t g1phi, g2phi, piphi;  
+    Float_t trueeE, trueeth, trueephi;
+    Float_t trueg1E, trueg2E, truepiE;
+    Float_t trueg1th, trueg2th, truepith;
+    Float_t trueg1phi, trueg2phi, truepiphi;
     tree->SetBranchAddress("run", &run);
     tree->SetBranchAddress("hel", &hel);
+    tree->SetBranchAddress("MCmatch", &MCmatch);
     tree->SetBranchAddress("isGoodEventWithoutML",&isGoodEventWithoutML);
+    tree->SetBranchAddress("chi2CutPiPlus", &chi2CutPiPlus);
+    tree->SetBranchAddress("truePi0",&truePi0);
+    tree->SetBranchAddress("halftruePi0",&halftruePi0);
     tree->SetBranchAddress("x", &x);
+    tree->SetBranchAddress("y", &y);
     tree->SetBranchAddress("Q2", &Q2);
     tree->SetBranchAddress("Mx", &Mx);
     tree->SetBranchAddress("z", &z);
-
     tree->SetBranchAddress("Mgg", &Mgg);
     tree->SetBranchAddress("Mh", &Mh);
     tree->SetBranchAddress("phi_h", &phi_h);
@@ -43,6 +59,47 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile, string v
     tree->SetBranchAddress("th", &th);
     tree->SetBranchAddress("prob_g1", &prob_g1);
     tree->SetBranchAddress("prob_g2", &prob_g2);
+    tree->SetBranchAddress("truex", &truex);
+    tree->SetBranchAddress("trueQ2", &trueQ2);
+    tree->SetBranchAddress("trueMx", &trueMx);
+    tree->SetBranchAddress("truez", &truez);
+    tree->SetBranchAddress("trueMgg", &trueMgg);
+    tree->SetBranchAddress("trueMh", &trueMh);
+    tree->SetBranchAddress("truephi_h", &truephi_h);
+    tree->SetBranchAddress("truephi_R0", &truephi_R0);
+    tree->SetBranchAddress("truephi_R1", &truephi_R1);
+    tree->SetBranchAddress("trueth", &trueth);
+    tree->SetBranchAddress("truepid_gamma1", &truepid_gamma1);
+    tree->SetBranchAddress("truepid_gamma2", &truepid_gamma2);
+    tree->SetBranchAddress("truepid_pion", &truepid_pion);
+    tree->SetBranchAddress("trueparentpid_gamma1", &trueparentpid_gamma1);
+    tree->SetBranchAddress("trueparentpid_gamma2", &trueparentpid_gamma2);
+    tree->SetBranchAddress("trueparentpid_pion", &trueparentpid_pion);
+    tree->SetBranchAddress("eE", &eE);
+    tree->SetBranchAddress("eth", &eth);
+    tree->SetBranchAddress("ephi", &ephi);
+    tree->SetBranchAddress("g1E", &g1E);
+    tree->SetBranchAddress("g2E", &g2E);
+    tree->SetBranchAddress("piE", &piE);
+    tree->SetBranchAddress("g1th", &g1th);
+    tree->SetBranchAddress("g2th", &g2th);
+    tree->SetBranchAddress("pith", &pith);
+    tree->SetBranchAddress("g1phi", &g1phi);
+    tree->SetBranchAddress("g2phi", &g2phi);
+    tree->SetBranchAddress("piphi", &piphi);
+    tree->SetBranchAddress("trueeE", &trueeE);
+    tree->SetBranchAddress("trueeth", &trueeth);
+    tree->SetBranchAddress("trueephi", &trueephi);
+    tree->SetBranchAddress("trueg1E", &trueg1E);
+    tree->SetBranchAddress("trueg2E", &trueg2E);
+    tree->SetBranchAddress("truepiE", &truepiE);
+    tree->SetBranchAddress("trueg1th", &trueg1th);
+    tree->SetBranchAddress("trueg2th", &trueg2th);
+    tree->SetBranchAddress("truepith", &truepith);
+    tree->SetBranchAddress("trueg1phi", &trueg1phi);
+    tree->SetBranchAddress("trueg2phi", &trueg2phi);
+    tree->SetBranchAddress("truepiphi", &truepiphi);
+    
     TFile *fout = new TFile(outfile,"RECREATE");
     // Loop over events in tree
     for (int i = 0; i < tree->GetEntries(); i++) {
@@ -57,8 +114,12 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile, string v
               SetBinNames(bins,bin_data_map);
               bin_data_map[index].bintree = new TTree(bin_data_map[index].binName,bin_data_map[index].binName);
               bin_data_map[index].bintree->Branch("fgID", &bin_data_map[index].entries);
+              bin_data_map[index].bintree->Branch("MCmatch",&MCmatch);
+              bin_data_map[index].bintree->Branch("truePi0",&truePi0);
+              bin_data_map[index].bintree->Branch("halftruePi0",&halftruePi0);
               bin_data_map[index].bintree->Branch("run", &run);
               bin_data_map[index].bintree->Branch("x",&x);
+              bin_data_map[index].bintree->Branch("y",&y);
               bin_data_map[index].bintree->Branch("Q2",&Q2);
               bin_data_map[index].bintree->Branch("Mx",&Mx);
               bin_data_map[index].bintree->Branch("z",&z);
@@ -72,6 +133,47 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile, string v
               bin_data_map[index].bintree->Branch("prob_g1", &prob_g1);
               bin_data_map[index].bintree->Branch("prob_g2", &prob_g2);
               bin_data_map[index].bintree->Branch("isGoodEventWithoutML",&isGoodEventWithoutML);
+              bin_data_map[index].bintree->Branch("truex",&truex);
+              bin_data_map[index].bintree->Branch("trueQ2",&trueQ2);
+              bin_data_map[index].bintree->Branch("trueMx",&trueMx);
+              bin_data_map[index].bintree->Branch("truez",&truez);
+              bin_data_map[index].bintree->Branch("trueMgg",&trueMgg);
+              bin_data_map[index].bintree->Branch("trueMh",&trueMh);
+              bin_data_map[index].bintree->Branch("truephi_h",&truephi_h);
+              bin_data_map[index].bintree->Branch("truephi_R0",&truephi_R0);
+              bin_data_map[index].bintree->Branch("truephi_R1",&truephi_R1);
+              bin_data_map[index].bintree->Branch("trueth",&trueth);
+              bin_data_map[index].bintree->Branch("chi2CutPiPlus",&chi2CutPiPlus);
+              bin_data_map[index].bintree->Branch("truepid_gamma1",&truepid_gamma1);
+              bin_data_map[index].bintree->Branch("truepid_gamma2",&truepid_gamma2);
+              bin_data_map[index].bintree->Branch("truepid_pion",&truepid_pion);
+              bin_data_map[index].bintree->Branch("trueparentpid_gamma1",&trueparentpid_gamma1);
+              bin_data_map[index].bintree->Branch("trueparentpid_gamma2",&trueparentpid_gamma2);
+              bin_data_map[index].bintree->Branch("trueparentpid_pion",&trueparentpid_pion);
+              bin_data_map[index].bintree->Branch("eE",&eE);
+              bin_data_map[index].bintree->Branch("eth",&eth);
+              bin_data_map[index].bintree->Branch("ephi",&ephi);
+              bin_data_map[index].bintree->Branch("g1E",&g1E);
+              bin_data_map[index].bintree->Branch("g2E",&g2E);
+              bin_data_map[index].bintree->Branch("piE",&piE);
+              bin_data_map[index].bintree->Branch("g1th",&g1th);
+              bin_data_map[index].bintree->Branch("g2th",&g2th);
+              bin_data_map[index].bintree->Branch("pith",&pith);
+              bin_data_map[index].bintree->Branch("g1phi",&g1phi);
+              bin_data_map[index].bintree->Branch("g2phi",&g2phi);
+              bin_data_map[index].bintree->Branch("piphi",&piphi);
+              bin_data_map[index].bintree->Branch("trueeE",&trueeE);
+              bin_data_map[index].bintree->Branch("trueeth",&trueeth);
+              bin_data_map[index].bintree->Branch("trueephi",&trueephi);
+              bin_data_map[index].bintree->Branch("trueg1E",&trueg1E);
+              bin_data_map[index].bintree->Branch("trueg2E",&trueg2E);
+              bin_data_map[index].bintree->Branch("truepiE",&truepiE);
+              bin_data_map[index].bintree->Branch("trueg1th",&trueg1th);
+              bin_data_map[index].bintree->Branch("trueg2th",&trueg2th);
+              bin_data_map[index].bintree->Branch("truepith",&truepith);
+              bin_data_map[index].bintree->Branch("trueg1phi",&trueg1phi);
+              bin_data_map[index].bintree->Branch("trueg2phi",&trueg2phi);
+              bin_data_map[index].bintree->Branch("truepiphi",&truepiphi);
           }
             bin_data_map[index].bintree->Fill();
             bin_data_map[index].entries++;

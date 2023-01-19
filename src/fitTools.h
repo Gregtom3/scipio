@@ -4,7 +4,7 @@ using namespace RooFit;
 class fitTools{
     public:
     // Constructor
-    fitTools(const char *, const char *, const char *,int, string, double);
+    fitTools(const char *, const char *, const char *,int, int, string, double, YAMLbinstruct);
     // Main methods
     void splot_pipluspi0(int, double, double, double);
     void sideband_pipluspi0(int, double, double, double,
@@ -25,6 +25,7 @@ class fitTools{
         string _input_dir;
         string _prefix;
         //
+        int _isMC;
         int _runMin=-100000;
         int _runMax=100000;
         float _polarization=1.0;

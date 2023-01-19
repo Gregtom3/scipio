@@ -1,12 +1,24 @@
 #include "fitTools.h"
+#include "InjectAsym.C"
 
-fitTools::fitTools(const char * input_dir, const char * input_file, const char * input_tree, int isMC, string version, double threshold){
+fitTools::fitTools(const char * input_dir, const char * input_file, const char * input_tree, int isMC, int L, string version, double threshold, YAMLbinstruct bs){
     _input_dir  = string(input_dir);
-    _input_file = string(input_file);
-    _infile = new TFile(input_file,"READ");
-    _intree = (TTree*)_infile->Get(input_tree);
-
-      
+    
+    _isMC = isMC;
+    if(isMC==0){ // nSidis, just use current ttree
+        _input_file = string(input_file);
+        _infile = new TFile(input_file,"READ");
+        _intree = (TTree*)_infile->Get(input_tree);
+    }
+    else{ // injection required for Monte Carlo 
+        _input_file = string(Form("%s_%s_%s_%s.root",input_file,input_tree,bs.injectName.c_str(),version.c_str()));
+        injectTree(input_file, input_tree, L, bs, version);
+        _infile = new TFile(_input_file.c_str(),"UPDATE");
+        _intree = (TTree*)_infile->Get(Form("%s_%s",input_tree,bs.injectName.c_str()));
+    }
+    _intree->Print();
+    
+    //cout << findIndexOfFile(input_file,binStructs);  
     cout << "\n\n----------------------------------------------------\n\n";
     cout << "      TFile: " << _infile->GetName() << "\n";
     cout << "      TTree: " << _intree->GetName() << "\n";

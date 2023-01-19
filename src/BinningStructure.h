@@ -8,13 +8,6 @@ struct BinData {
 };
 
 class BinningStructure {
-private:
-  // Vector of bin names
-  vector<string> bin_names;
-  // Map of bin name and bin edges
-  map<string, vector<double>> bins;
-  // Map of BinData structs
-  map<vector<int>, BinData> bin_data_map;
   
 public:
   // Constructor
@@ -34,7 +27,7 @@ public:
     map<string, vector<double>> convert_min_max_n(vector<string>, map<string,double>, map<string,double>, map<string,int>);
     
     // Method to process a TTree
-    void process_ttree(TChain *, const char *, string);
+    void process_ttree(TChain *, const char *);
     
     // Method to set the bin names
     void SetBinNames(map<string, vector<double>>, map<vector<int>, BinData>&);
@@ -50,4 +43,11 @@ public:
     
     // Method to iterate over all bins and get corresponding arrays
     vector<BinData> get_all_bins_data();
+    
+      // Vector of bin names
+      vector<string> bin_names;
+      // Map of bin name and bin edges
+      map<string, vector<double>> bins;
+      // Map of BinData structs
+      map<vector<int>, BinData> bin_data_map;
 };
