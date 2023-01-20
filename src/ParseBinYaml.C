@@ -16,7 +16,11 @@ int findIndexOfFile(const char * file, std::vector<YAMLbinstruct> binStructs){
     int index = -1;
     std::string fileName = file;
     int pos = fileName.find_last_of("/\\");
-    fileName = fileName.substr(pos + 4);
+    if (fileName.find("nSidis") != std::string::npos) {
+        fileName = fileName.substr(pos + 8);
+    } else {
+        fileName = fileName.substr(pos + 4);
+    }
     for (int i = 0; i < binStructs.size(); i++) {
         if (binStructs[i].name == fileName) {
             index = i;
