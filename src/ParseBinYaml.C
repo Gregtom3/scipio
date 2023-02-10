@@ -1,5 +1,5 @@
 #include "BinningStructure.C"
-#include "BinManager.C"
+
 struct YAMLbinstruct {
     std::string name="";
     std::string parentDirectory="";

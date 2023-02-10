@@ -27,8 +27,8 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     int hel,run;
     int isGoodEventWithoutML;
     int MCmatch; // True if all important particles had a Monte Carlo match
-    float x,Q2,Mx,y,z, Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
-    float truex,trueQ2,trueMx,truez,trueMgg,trueMh,truephi_h,truephi_R0,truephi_R1,trueth;
+    float x,Q2,Mx,y,z,W, Mgg, Mh, phi_h, phi_R0, phi_R1, th, prob_g1, prob_g2;
+    float truex,trueQ2,trueW,trueMx,truez,trueMgg,trueMh,truephi_h,truephi_R0,truephi_R1,trueth;
     int halftruePi0, truePi0;
     int chi2CutPiPlus, truepid_gamma1, truepid_gamma2, truepid_pion, trueparentpid_gamma1, trueparentpid_gamma2, trueparentpid_pion;
     Float_t eE, eth, ephi;
@@ -51,6 +51,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     tree->SetBranchAddress("Q2", &Q2);
     tree->SetBranchAddress("Mx", &Mx);
     tree->SetBranchAddress("z", &z);
+    tree->SetBranchAddress("W", &W);
     tree->SetBranchAddress("Mgg", &Mgg);
     tree->SetBranchAddress("Mh", &Mh);
     tree->SetBranchAddress("phi_h", &phi_h);
@@ -63,6 +64,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
     tree->SetBranchAddress("trueQ2", &trueQ2);
     tree->SetBranchAddress("trueMx", &trueMx);
     tree->SetBranchAddress("truez", &truez);
+    tree->SetBranchAddress("trueW", &trueW);
     tree->SetBranchAddress("trueMgg", &trueMgg);
     tree->SetBranchAddress("trueMh", &trueMh);
     tree->SetBranchAddress("truephi_h", &truephi_h);
@@ -123,6 +125,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
               bin_data_map[index].bintree->Branch("Q2",&Q2);
               bin_data_map[index].bintree->Branch("Mx",&Mx);
               bin_data_map[index].bintree->Branch("z",&z);
+              bin_data_map[index].bintree->Branch("W",&W);
               bin_data_map[index].bintree->Branch("hel", &hel);
               bin_data_map[index].bintree->Branch("Mgg", &Mgg);
               bin_data_map[index].bintree->Branch("Mh", &Mh);
@@ -137,6 +140,7 @@ void BinningStructure::process_ttree(TChain *tree,const char * outfile) {
               bin_data_map[index].bintree->Branch("trueQ2",&trueQ2);
               bin_data_map[index].bintree->Branch("trueMx",&trueMx);
               bin_data_map[index].bintree->Branch("truez",&truez);
+              bin_data_map[index].bintree->Branch("trueW",&trueW);
               bin_data_map[index].bintree->Branch("trueMgg",&trueMgg);
               bin_data_map[index].bintree->Branch("trueMh",&trueMh);
               bin_data_map[index].bintree->Branch("truephi_h",&truephi_h);

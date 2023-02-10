@@ -1,6 +1,20 @@
 #include "fitTools.h"
 #include "InjectAsym.C"
+//
 
+
+
+// As of 1/30/2023, a z<0.9 is enforced to keep out of the exclusive region
+// This is done regardless of pion charge
+
+
+
+
+
+
+
+
+//
 fitTools::fitTools(const char * input_dir, const char * input_file, const char * input_tree, int isMC, int L, string version, double threshold, YAMLbinstruct bs){
     _input_dir  = string(input_dir);
     
@@ -110,6 +124,7 @@ void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin,
     RF.SetUp().LoadVariable(Form("Mgg[%f,%f]",Mggmin,Mggmax));//should be same name as variable in tree
     RF.SetUp().LoadAuxVar("prob_g1[0,10]");
     RF.SetUp().LoadAuxVar("prob_g2[0,10]");
+    RF.SetUp().LoadAuxVar("z[0,10]"); // Added 1/30/2023
     RF.SetUp().LoadAuxVar("isGoodEventWithoutML[0,1]");
     RF.SetUp().LoadAuxVar("run[-100000,100000]");
     RF.SetUp().SetIDBranchName("fgID");
@@ -118,11 +133,12 @@ void fitTools::unbinned_pi0(string _input_file, double threshold, double Mggmin,
     RF.SetUp().FactoryPDF("Gaussian::Signal( Mgg, mean[0.131,0.129,0.14], sigma[0.1,0.0001,0.04] )");
     RF.SetUp().LoadSpeciesPDF("Signal",1);
     ////////////////////////////////Additional background
-    RF.SetUp().FactoryPDF("Chebychev::BG(Mgg,{a0[-0.1,-1,1],a1[0.1,-1,1]})");
+    RF.SetUp().FactoryPDF("Chebychev::BG(Mgg,{a0[-0.1,-1,1],a1[0.1,-1,1],a2[0.1,-1,1],a3[0.1,-1,1]})");
     RF.SetUp().LoadSpeciesPDF("BG",1);
     ////////////////////////////////Cuts
     RF.SetUp().AddCut(Form("run>=%d",_runMin));
     RF.SetUp().AddCut(Form("run<=%d",_runMax));
+    RF.SetUp().AddCut("z<0.9")
     if(threshold!=1){ // Use ML
         RF.SetUp().AddCut(Form("prob_g1>%f",threshold));
         RF.SetUp().AddCut(Form("prob_g2>%f",threshold));
@@ -154,9 +170,9 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
     
     ///////////////////////////// Draw into the histogram
     if(threshold!=1) // Use ML
-        _intree->Draw("Mgg>>Mdiphoton",Form("prob_g1>%f&&prob_g2>%f&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)",threshold,threshold,_runMin,_runMax),"goff");
+        _intree->Draw("Mgg>>Mdiphoton",Form("prob_g1>%f&&prob_g2>%f&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)&&(z<0.9)",threshold,threshold,_runMin,_runMax),"goff"); // Edit z<0.9 1/30/2023
     else             // Don't use ML
-        _intree->Draw("Mgg>>Mdiphoton",Form("isGoodEventWithoutML==1&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)",_runMin,_runMax),"goff");
+        _intree->Draw("Mgg>>Mdiphoton",Form("isGoodEventWithoutML==1&&(hel==1||hel==-1)&&(run>=%d&&run<=%d)&&(z<0.9)",_runMin,_runMax),"goff"); // Edit z<0.9 1/30/2023
     ///////////////////////////// Scale the histogram
     TH1F *hnorm = (TH1F*)h->Clone();
     hnorm->SetName("Mdiphoton_normed");
@@ -177,7 +193,7 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
     }
     
     ///////////////////////////// Create fit object 
-    TF1 * f_sdbnd = new TF1("f_sdbnd","gaus(0)+pol2(3)",xmin,xmax);
+    TF1 * f_sdbnd = new TF1("f_sdbnd","gaus(0)+pol4(3)",xmin,xmax);
     f_sdbnd->SetParameter(1,0.134);
     f_sdbnd->SetParLimits(0,0.001,100);
     f_sdbnd->SetParLimits(1,0.129,0.14);
@@ -187,12 +203,12 @@ void fitTools::binned_pi0(double threshold, double Mggmin, double Mggmax,
     hnorm->Fit(f_sdbnd,"R");
     ///////////////////////////// Calculate purity
     TF1 * sig = new TF1("sig","gaus(0)",Mggmin,Mggmax);
-    TF1 * bg = new TF1("bg","pol2(0)",Mggmin,Mggmax);
+    TF1 * bg = new TF1("bg","pol4(0)",Mggmin,Mggmax);
     for(int j = 0 ; j < 3 ; j++){
         sig->SetParameter(j,f_sdbnd->GetParameter(j));
     }
-    for(int k = 0 ; k < 3 ; k++){
-        bg->SetParameter(k,f_sdbnd->GetParameter(k));
+    for(int k = 0 ; k < 5 ; k++){
+        bg->SetParameter(k,f_sdbnd->GetParameter(k+3));
     }
 
     double u = 1-(bg->Integral(Mggmin,Mggmax)/sig->Integral(Mggmin,Mggmax));
@@ -236,11 +252,13 @@ void fitTools::process_azi_FM(FitManager &FM, double threshold, double min, doub
     FM.SetUp().LoadAuxVar("prob_g2[0,10]");
     FM.SetUp().LoadAuxVar("isGoodEventWithoutML[0,1]");
     FM.SetUp().LoadAuxVar("Mgg[0,10]");
+    FM.SetUp().LoadAuxVar("z[0,10]"); // Added 1/30/2023
     FM.SetUp().LoadAuxVar("run[-100000,100000]");
     FM.SetUp().SetIDBranchName("fgID");
     ////////////////////////////////Cuts
     FM.SetUp().AddCut(Form("run>=%d",_runMin));
     FM.SetUp().AddCut(Form("run<=%d",_runMax));
+    FM.SetUp().AddCut("z<0.9"); // Added 1/30/2023
     if(threshold!=1){ // use ML
         FM.SetUp().AddCut(Form("prob_g1>%f",threshold));
         FM.SetUp().AddCut(Form("prob_g2>%f",threshold));

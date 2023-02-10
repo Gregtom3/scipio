@@ -44,7 +44,7 @@ int process_pipluspi0(
   int nPart=100;
   float px[nPart], py[nPart], pz[nPart], E[nPart], vz[nPart], chi2[nPart], theta[nPart], eta[nPart], phi[nPart], catboost_weight[nPart];
   float truepx[nPart] , truepy[nPart] , truepz[nPart], trueE[nPart], truetheta[nPart], trueeta[nPart], truephi[nPart];
-  int pid[nPart] ,parentID[nPart],parentPID[nPart];
+  int pid[nPart] ,parentID[nPart],parentPID[nPart],parentparentID[nPart],parentparentPID[nPart];
   int truepid[nPart];
   //link the TBranches to the variables
   intree->SetBranchAddress("run",&run);
@@ -52,6 +52,8 @@ int process_pipluspi0(
   intree->SetBranchAddress("hel",&hel);
   intree->SetBranchAddress("MCmatch_parent_id", &parentID);
   intree->SetBranchAddress("MCmatch_parent_pid", &parentPID);
+  intree->SetBranchAddress("MCmatch_parentparent_id", &parentparentID);
+  intree->SetBranchAddress("MCmatch_parentparent_pid", &parentparentPID);
   intree->SetBranchAddress("x",&x);
   intree->SetBranchAddress("Q2",&Q2);
   intree->SetBranchAddress("W",&W); 
@@ -98,6 +100,15 @@ int process_pipluspi0(
   int trueparentpid_gamma1 = 0;
   int trueparentpid_gamma2 = 0;
   int trueparentpid_pion   = 0;
+  int trueparentid_gamma1 = 0;
+  int trueparentid_gamma2 = 0;
+  int trueparentid_pion   = 0;
+  int trueparentparentpid_gamma1 = 0;
+  int trueparentparentpid_gamma2 = 0;
+  int trueparentparentpid_pion   = 0;
+  int trueparentparentid_gamma1 = 0;
+  int trueparentparentid_gamma2 = 0;
+  int trueparentparentid_pion   = 0;
   Float_t eE, eth, ephi;
   Float_t g1E, g2E, piE;
   Float_t g1th, g2th, pith;
@@ -154,6 +165,15 @@ int process_pipluspi0(
   outtree->Branch("trueparentpid_gamma1",&trueparentpid_gamma1,"trueparentpid_gamma1/I");
   outtree->Branch("trueparentpid_gamma2",&trueparentpid_gamma2,"trueparentpid_gamma2/I");
   outtree->Branch("trueparentpid_pion",&trueparentpid_pion,"trueparentpid_pion/I");
+  outtree->Branch("trueparentid_gamma1",&trueparentid_gamma1,"trueparentid_gamma1/I");
+  outtree->Branch("trueparentid_gamma2",&trueparentid_gamma2,"trueparentid_gamma2/I");
+  outtree->Branch("trueparentid_pion",&trueparentid_pion,"trueparentid_pion/I");
+  outtree->Branch("trueparentparentpid_gamma1",&trueparentparentpid_gamma1,"trueparentparentpid_gamma1/I");
+  outtree->Branch("trueparentparentpid_gamma2",&trueparentparentpid_gamma2,"trueparentparentpid_gamma2/I");
+  outtree->Branch("trueparentparentpid_pion",&trueparentparentpid_pion,"trueparentparentpid_pion/I");
+  outtree->Branch("trueparentparentid_gamma1",&trueparentparentid_gamma1,"trueparentparentid_gamma1/I");
+  outtree->Branch("trueparentparentid_gamma2",&trueparentparentid_gamma2,"trueparentparentid_gamma2/I");
+  outtree->Branch("trueparentparentid_pion",&trueparentparentid_pion,"trueparentparentid_pion/I"); 
   outtree->Branch("truepid_gamma1",&truepid_gamma1,"truepid_gamma1/I");
   outtree->Branch("truepid_gamma2",&truepid_gamma2,"truepid_gamma2/I");
   outtree->Branch("truepid_pion",&truepid_pion,"truepid_pion/I");
@@ -220,6 +240,9 @@ int process_pipluspi0(
     truephoton1.SetPxPyPzE(truepx[j],truepy[j],truepz[j],trueE[j]);
     truepid_gamma1 = truepid[j];
     trueparentpid_gamma1 = parentPID[j];
+    trueparentid_gamma1  = parentID[j];
+    trueparentparentpid_gamma1 = parentparentPID[j];
+    trueparentparentid_gamma1  = parentparentID[j];
 	prob_g1=catboost_weight[j]; // catboost weight
 	// loop over all particles again
 	for (Int_t k=j+1; k<nPart;k++){
@@ -228,6 +251,9 @@ int process_pipluspi0(
         truephoton2.SetPxPyPzE(truepx[k],truepy[k],truepz[k],trueE[k]);
         truepid_gamma2 = truepid[k];
         trueparentpid_gamma2 = parentPID[k];
+        trueparentid_gamma2  = parentID[k];
+        trueparentparentpid_gamma2 = parentparentPID[k];
+        trueparentparentid_gamma2  = parentparentID[k];
 	    prob_g2=catboost_weight[k]; // catboost weight
 	    TLorentzVector diphoton = photon1 + photon2;
         TLorentzVector truediphoton = truephoton1+truephoton2;
@@ -239,6 +265,10 @@ int process_pipluspi0(
           TLorentzVector truepion(truepx[m],truepy[m],truepz[m],trueE[m]);
           truepid_pion = truepid[m];
           trueparentpid_pion = parentPID[m];
+          trueparentid_pion  = parentID[m];
+          trueparentparentpid_pion = parentparentPID[m];
+          trueparentparentid_pion  = parentparentID[m];
+            
 	      // form dihadron
 	      TLorentzVector dihadron = pion + diphoton;
 	      TLorentzVector truedihadron = truepion + truediphoton;
